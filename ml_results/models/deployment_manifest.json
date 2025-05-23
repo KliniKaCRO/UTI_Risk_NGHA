@@ -1,0 +1,187 @@
+{
+  "timestamp": "2025-05-22T04:35:26.338494",
+  "models": {
+    "logistic_regression": {
+      "file_path": "logistic_regression.joblib",
+      "model_type": "Pipeline",
+      "performance": {
+        "accuracy": 0.7388059701492538,
+        "roc_auc": 0.6999699969997,
+        "avg_precision": 0.44751528435050103,
+        "cv_scores": [
+          0.8509158751696065,
+          0.7893065998329156,
+          0.842617908407382
+        ],
+        "cv_mean": 0.8276134611366347,
+        "cv_std": 0.02729805585633679
+      }
+    },
+    "random_forest": {
+      "file_path": "random_forest.joblib",
+      "model_type": "Pipeline",
+      "performance": {
+        "accuracy": 0.746268656716418,
+        "roc_auc": 0.6279627962796279,
+        "avg_precision": 0.3763886910972922,
+        "cv_scores": [
+          0.7508480325644504,
+          0.7881370091896408,
+          0.8098086124401914
+        ],
+        "cv_mean": 0.7829312180647608,
+        "cv_std": 0.024350396174023087
+      }
+    },
+    "extra_trees": {
+      "file_path": "extra_trees.joblib",
+      "model_type": "Pipeline",
+      "performance": {
+        "accuracy": 0.7164179104477612,
+        "roc_auc": 0.5978097809780978,
+        "avg_precision": 0.35169200320183924,
+        "cv_scores": [
+          0.6941994572591588,
+          0.7397660818713451,
+          0.8021189336978811
+        ],
+        "cv_mean": 0.7453614909427951,
+        "cv_std": 0.04423524085846514
+      }
+    },
+    "naive_bayes": {
+      "file_path": "naive_bayes.joblib",
+      "model_type": "Pipeline",
+      "performance": {
+        "accuracy": 0.7089552238805971,
+        "roc_auc": 0.651965196519652,
+        "avg_precision": 0.40958746717773575,
+        "cv_scores": [
+          0.8137720488466758,
+          0.7152882205513784,
+          0.8200615174299385
+        ],
+        "cv_mean": 0.7830405956093309,
+        "cv_std": 0.047976922217944584
+      }
+    },
+    "random_forest_interact": {
+      "file_path": "random_forest_interact.joblib",
+      "model_type": "Pipeline",
+      "performance": {
+        "accuracy": 0.7313432835820896,
+        "roc_auc": 0.6470147014701471,
+        "avg_precision": 0.38617456880583534,
+        "cv_scores": [
+          0.6470147014701471
+        ]
+      }
+    }
+  },
+  "features": [
+    "Gender",
+    "Age",
+    "BMI",
+    "TransplantType",
+    "Diabetes",
+    "DJ_duration",
+    "Creatinine",
+    "eGFR",
+    "Hemoglobin",
+    "WBC",
+    "ImmunosuppressionType",
+    "AntibioticProphylaxis"
+  ],
+  "categorical_features": [
+    "Gender",
+    "TransplantType",
+    "Diabetes",
+    "ImmunosuppressionType",
+    "AntibioticProphylaxis"
+  ],
+  "numerical_features": [
+    "Age",
+    "BMI",
+    "DJ_duration",
+    "Creatinine",
+    "eGFR",
+    "Hemoglobin",
+    "WBC"
+  ],
+  "target_variable": "Has_UTI",
+  "performance_metrics": {
+    "logistic_regression": {
+      "accuracy": 0.7388059701492538,
+      "roc_auc": 0.6999699969997,
+      "avg_precision": 0.44751528435050103,
+      "cv_scores": [
+        0.8509158751696065,
+        0.7893065998329156,
+        0.842617908407382
+      ],
+      "cv_mean": 0.8276134611366347,
+      "cv_std": 0.02729805585633679
+    },
+    "random_forest": {
+      "accuracy": 0.746268656716418,
+      "roc_auc": 0.6279627962796279,
+      "avg_precision": 0.3763886910972922,
+      "cv_scores": [
+        0.7508480325644504,
+        0.7881370091896408,
+        0.8098086124401914
+      ],
+      "cv_mean": 0.7829312180647608,
+      "cv_std": 0.024350396174023087
+    },
+    "extra_trees": {
+      "accuracy": 0.7164179104477612,
+      "roc_auc": 0.5978097809780978,
+      "avg_precision": 0.35169200320183924,
+      "cv_scores": [
+        0.6941994572591588,
+        0.7397660818713451,
+        0.8021189336978811
+      ],
+      "cv_mean": 0.7453614909427951,
+      "cv_std": 0.04423524085846514
+    },
+    "naive_bayes": {
+      "accuracy": 0.7089552238805971,
+      "roc_auc": 0.651965196519652,
+      "avg_precision": 0.40958746717773575,
+      "cv_scores": [
+        0.8137720488466758,
+        0.7152882205513784,
+        0.8200615174299385
+      ],
+      "cv_mean": 0.7830405956093309,
+      "cv_std": 0.047976922217944584
+    },
+    "random_forest_interact": {
+      "accuracy": 0.7313432835820896,
+      "roc_auc": 0.6470147014701471,
+      "avg_precision": 0.38617456880583534,
+      "cv_scores": [
+        0.6470147014701471
+      ]
+    }
+  },
+  "google_health_ai_version": "1.0.0",
+  "best_model": {
+    "name": "logistic_regression",
+    "file_path": "best_model.joblib",
+    "performance": {
+      "accuracy": 0.7388059701492538,
+      "roc_auc": 0.6999699969997,
+      "avg_precision": 0.44751528435050103,
+      "cv_scores": [
+        0.8509158751696065,
+        0.7893065998329156,
+        0.842617908407382
+      ],
+      "cv_mean": 0.8276134611366347,
+      "cv_std": 0.02729805585633679
+    }
+  }
+}
