@@ -35,27 +35,27 @@ def load_custom_css():
         padding: 0;
     }
     
-    /* Header Styling - WHITE BACKGROUND */
+    /* Header Styling */
     .premium-header {
-        background: #FFFFFF;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         padding: 2rem;
         border-radius: 15px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        border: 1px solid rgba(0,0,0,0.1);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.1);
     }
     
     .premium-title {
-        color: #2C3E50;
+        color: #FFFFFF !important;
         font-size: 3rem;
         font-weight: 800;
         text-align: center;
         margin: 0;
-        text-shadow: none;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     
     .premium-subtitle {
-        color: #34495E;
+        color: #B3D9FF;
         font-size: 1.2rem;
         text-align: center;
         margin-top: 0.5rem;
@@ -354,7 +354,7 @@ def load_model_with_progress():
 # =============================================================================
 
 def main():
-    # Premium Header - WHITE BACKGROUND
+    # Premium Header
     st.markdown("""
     <div class="premium-header fade-in-up">
         <h1 class="premium-title">⚕️ NGHA/KAIMRC UTI Risk Calculator</h1>
@@ -381,7 +381,7 @@ def main():
         """)
         return
     
-    # Main Risk Assessment Page
+    # Risk Assessment Page
     risk_assessment_page(model, config)
 
 def risk_assessment_page(model, config):
@@ -621,9 +621,8 @@ def display_clinical_recommendations(risk_level, risk_prob, dj_duration, antibio
 def display_footer():
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; padding: 2rem; background: #FFFFFF; border-radius: 15px; color: #2C3E50; margin-top: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+    <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 15px; color: white; margin-top: 2rem;">
         <h3>🏥 NGHA/KAIMRC UTI Risk Calculator</h3>
-        <p><strong>Version 2.0 - Premium AI System</strong></p>
         <p>Developed by KliniKa | For Clinical Research & Decision Support</p>
         <p style="font-size: 0.9rem; opacity: 0.8;">This tool is for research purposes and should be used in conjunction with clinical judgment.</p>
     </div>
