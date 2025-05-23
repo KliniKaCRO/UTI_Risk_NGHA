@@ -18,7 +18,7 @@ st.set_page_config(
     page_title="NGHA/KAIMRC UTI Risk Calculator - Premium AI System",
     page_icon="⚕️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS for premium design
@@ -35,27 +35,27 @@ def load_custom_css():
         padding: 0;
     }
     
-    /* Header Styling */
+    /* Header Styling - WHITE BACKGROUND */
     .premium-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: #FFFFFF;
         padding: 2rem;
         border-radius: 15px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        border: 1px solid rgba(0,0,0,0.1);
     }
     
     .premium-title {
-        color: white;
+        color: #2C3E50;
         font-size: 3rem;
         font-weight: 800;
         text-align: center;
         margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        text-shadow: none;
     }
     
     .premium-subtitle {
-        color: #B3D9FF;
+        color: #34495E;
         font-size: 1.2rem;
         text-align: center;
         margin-top: 0.5rem;
@@ -181,11 +181,6 @@ def load_custom_css():
     
     .fade-in-up {
         animation: fadeInUp 0.8s ease-out;
-    }
-    
-    /* Sidebar Styling */
-    .css-1d391kg {
-        background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
     }
     
     /* Hide Streamlit Branding */
@@ -359,23 +354,13 @@ def load_model_with_progress():
 # =============================================================================
 
 def main():
-    # Premium Header
+    # Premium Header - WHITE BACKGROUND
     st.markdown("""
     <div class="premium-header fade-in-up">
         <h1 class="premium-title">⚕️ NGHA/KAIMRC UTI Risk Calculator</h1>
         <p class="premium-subtitle">Advanced AI-Powered Clinical Decision Support System</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Sidebar Navigation
-    with st.sidebar:
-        st.markdown("### 🎛️ Navigation")
-        page = st.radio("Select Module:", [
-            "🏠 Risk Assessment", 
-            "📊 Analytics Dashboard", 
-            "📚 Clinical Guidelines",
-            "⚙️ Settings"
-        ])
     
     # Load Model
     if 'model_loaded' not in st.session_state:
@@ -396,15 +381,8 @@ def main():
         """)
         return
     
-    # Main Content Based on Navigation
-    if page == "🏠 Risk Assessment":
-        risk_assessment_page(model, config)
-    elif page == "📊 Analytics Dashboard":
-        analytics_dashboard_page()
-    elif page == "📚 Clinical Guidelines":
-        clinical_guidelines_page()
-    else:
-        settings_page()
+    # Main Risk Assessment Page
+    risk_assessment_page(model, config)
 
 def risk_assessment_page(model, config):
     """Premium Risk Assessment Interface"""
@@ -637,64 +615,13 @@ def display_clinical_recommendations(risk_level, risk_prob, dj_duration, antibio
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-def analytics_dashboard_page():
-    """Premium Analytics Dashboard"""
-    st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 📊 Advanced Analytics Dashboard")
-    st.info("🚧 Coming Soon: Comprehensive analytics and population health insights")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def clinical_guidelines_page():
-    """Clinical Guidelines and Evidence"""
-    st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 📚 Clinical Guidelines & Evidence Base")
-    
-    st.markdown("""
-    #### 🎯 Risk Stratification Guidelines
-    
-    **Low Risk (< 15%)**
-    - Standard care protocols
-    - Routine monitoring
-    - Patient education
-    
-    **Moderate Risk (15-35%)**
-    - Enhanced surveillance
-    - Consider prophylaxis
-    - More frequent follow-up
-    
-    **High Risk (> 35%)**
-    - Intensive monitoring
-    - Prophylactic antibiotics
-    - Early intervention protocols
-    
-    #### 📖 Evidence Base
-    - Model developed on NGHA/KAIMRC cohort (n=669)
-    - Validation AUC: 0.700 (95% CI: 0.62-0.78)
-    - Calibration slope: 0.94 (excellent calibration)
-    - Clinical decision curve analysis shows net benefit
-    """)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def settings_page():
-    """Application Settings"""
-    st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### ⚙️ Application Settings")
-    
-    st.selectbox("🎨 Theme", ["Default", "Dark Mode", "High Contrast"])
-    st.selectbox("🌍 Language", ["English", "Arabic"])
-    st.checkbox("📧 Email Notifications")
-    st.checkbox("🔔 Risk Alerts")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
 # =============================================================================
 # FOOTER
 # =============================================================================
 def display_footer():
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 15px; color: white; margin-top: 2rem;">
+    <div style="text-align: center; padding: 2rem; background: #FFFFFF; border-radius: 15px; color: #2C3E50; margin-top: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
         <h3>🏥 NGHA/KAIMRC UTI Risk Calculator</h3>
         <p><strong>Version 2.0 - Premium AI System</strong></p>
         <p>Developed by KliniKa | For Clinical Research & Decision Support</p>
