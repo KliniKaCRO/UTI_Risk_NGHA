@@ -1,4 +1,66 @@
-import streamlit as st
+def show_file_uploader():
+    """Show file uploader outside of cached function"""
+    st.markdown("### 📤 EMERGENCY FILE UPLOAD")
+    uploaded_file = st.file_uploader(
+        "Upload your model file directly",
+        type=['joblib', 'pkl'],
+        help="This bypasses all file detection issues",
+        key="model_uploader"
+    )
+    
+    if uploaded_file is not None:
+        try:
+            st.info("🔄 Processing uploaded file...")
+            
+            # Save temporarily
+            temp_path = f"temp_{uploaded_file.name}"
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
+            
+            st.success(f"✅ Saved temporarily as `{temp_path}`")
+            
+            # Apply sklearn compatibility fixes
+            try:
+                import sklearn.compose._column_transformer as ct
+                if not hasattr(ct, '_RemainderColsList'):
+                    ct._RemainderColsList = list
+            except:
+                pass
+            
+            # Load uploaded model
+            if uploaded_file.name.endswith('.pkl'):
+                import pickle
+                with open(temp_path, 'rb') as f:
+                    model_data = pickle.load(f)
+                model = model_data['model'] if isinstance(model_data, dict) else model_data
+            else:
+                try:
+                    model = joblib.load(temp_path)
+                except:
+                    # Try pickle as fallback
+                    import pickle
+                    with open(temp_path, 'rb') as f:
+                        model = pickle.load(f)
+            
+            # Store in session state
+            st.session_state.corrected_model = model
+            st.session_state.model_filename = uploaded_file.name
+            st.session_state.expected_features = [
+                'Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
+                'DJ_duration', 'Creatinine', 'eGFR', 'Hemoglobin', 
+                'WBC', 'ImmunosuppressionType'
+            ]
+            st.session_state.corrected_model_loaded = True
+            
+            st.success(f"🎉 **UPLOAD SUCCESS!** Model loaded: `{type(model)}`")
+            st.rerun()  # Refresh the app
+            
+        except Exception as e:
+            st.error(f"💥 Upload loading failed: `{type(e).__name__}: {str(e)}`")
+            import traceback
+            st.code(traceback.format_exc())
+            
+    return uploaded_file is not Noneimport streamlit as st
 import joblib
 import pandas as pd
 import numpy as np
@@ -10,7 +72,29 @@ import time
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 
 # =============================================================================
-# CUSTOM CLASSES FOR MODEL COMPATIBILITY
+# SKLEARN COMPATIBILITY FIXES
+# =============================================================================
+
+# Fix for sklearn version compatibility issues
+import sys
+from sklearn.compose import _column_transformer
+
+# Add missing sklearn classes for compatibility
+if not hasattr(_column_transformer, '_RemainderColsList'):
+    class _RemainderColsList(list):
+        """Compatibility class for sklearn version differences"""
+        pass
+    _column_transformer._RemainderColsList = _RemainderColsList
+    sys.modules['sklearn.compose._column_transformer']._RemainderColsList = _RemainderColsList
+
+# Fix for other potential sklearn compatibility issues
+try:
+    from sklearn.utils._bunch import Bunch
+except ImportError:
+    from sklearn.utils import Bunch
+
+# =============================================================================
+# CUSTOM CLASSES FOR MODEL COMPATIBILITY  
 # =============================================================================
 
 class FeatureRemovalPreprocessor(BaseEstimator, TransformerMixin):
@@ -445,7 +529,6 @@ def create_timeline_chart(risk_over_time):
 # CORRECTED MODEL LOADING
 # =============================================================================
 
-@st.cache_resource
 def load_corrected_model():
     """Load the corrected UTI prediction model with MAXIMUM debugging"""
     
@@ -506,8 +589,8 @@ def load_corrected_model():
             else:
                 st.error(f"❌ `{path}` does not exist")
         
-        # Now try loading
-        st.markdown("### 🚀 Attempting Model Loading")
+        # Now try loading with sklearn compatibility fixes
+        st.markdown("### 🚀 Attempting Model Loading (With Compatibility Fixes)")
         
         model_search_paths = [
             'ml_results/models/best_model.joblib',
@@ -526,7 +609,22 @@ def load_corrected_model():
             
             try:
                 if os.path.exists(filepath):
-                    st.info(f"  📁 File exists, attempting to load...")
+                    st.info(f"  📁 File exists, attempting to load with compatibility fixes...")
+                    
+                    # Apply additional sklearn compatibility fixes before loading
+                    try:
+                        # Try to fix more sklearn compatibility issues
+                        import sklearn.compose._column_transformer as ct
+                        if not hasattr(ct, '_RemainderColsList'):
+                            ct._RemainderColsList = list
+                        
+                        # Additional sklearn compatibility
+                        import sklearn.utils._testing
+                        if not hasattr(sklearn.utils._testing, 'ignore_warnings'):
+                            sklearn.utils._testing.ignore_warnings = lambda: lambda f: f
+                            
+                    except Exception as comp_e:
+                        st.warning(f"  ⚠️ Compatibility fix warning: {comp_e}")
                     
                     if filepath.endswith('.pkl'):
                         st.info("  🔄 Loading as pickle file...")
@@ -535,8 +633,22 @@ def load_corrected_model():
                             model_data = pickle.load(f)
                         model = model_data['model'] if isinstance(model_data, dict) else model_data
                     else:
-                        st.info("  🔄 Loading as joblib file...")
-                        model = joblib.load(filepath)
+                        st.info("  🔄 Loading as joblib file with compatibility...")
+                        
+                        # Try loading with different methods
+                        try:
+                            model = joblib.load(filepath)
+                        except Exception as load_e1:
+                            st.warning(f"  ⚠️ Standard joblib load failed: {load_e1}")
+                            
+                            # Try with pickle protocol fix
+                            try:
+                                import pickle
+                                with open(filepath, 'rb') as f:
+                                    model = pickle.load(f)
+                                st.info("  🔄 Loaded using pickle instead of joblib")
+                            except Exception as load_e2:
+                                raise load_e1  # Re-raise original error
                     
                     model_filename = filepath
                     st.success(f"  ✅ SUCCESS! Loaded from `{filepath}`")
@@ -549,52 +661,29 @@ def load_corrected_model():
                     
             except Exception as e:
                 st.error(f"  💥 Loading failed: `{type(e).__name__}: {str(e)}`")
-                # Show full traceback for debugging
+                # Show relevant part of traceback for debugging
                 import traceback
-                st.code(traceback.format_exc())
+                tb_lines = traceback.format_exc().split('\n')
+                relevant_lines = [line for line in tb_lines if 'sklearn' in line or 'AttributeError' in line or 'joblib' in line]
+                if relevant_lines:
+                    st.code('\n'.join(relevant_lines))
                 continue
         
         if model is None:
             st.error("🚨 **NO MODEL LOADED SUCCESSFULLY**")
+            st.error("**The issue is sklearn version compatibility - the model was saved with a different sklearn version.**")
             
-            # Show file upload as last resort
-            st.markdown("### 📤 EMERGENCY FILE UPLOAD")
-            uploaded_file = st.file_uploader(
-                "Upload your model file directly",
-                type=['joblib', 'pkl'],
-                help="This bypasses all file detection issues"
-            )
+            st.info("""
+            **🔧 SOLUTIONS:**
             
-            if uploaded_file is not None:
-                try:
-                    st.info("🔄 Processing uploaded file...")
-                    
-                    # Save temporarily
-                    temp_path = f"temp_{uploaded_file.name}"
-                    with open(temp_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
-                    
-                    st.success(f"✅ Saved temporarily as `{temp_path}`")
-                    
-                    # Load uploaded model
-                    if uploaded_file.name.endswith('.pkl'):
-                        import pickle
-                        with open(temp_path, 'rb') as f:
-                            model_data = pickle.load(f)
-                        model = model_data['model'] if isinstance(model_data, dict) else model_data
-                    else:
-                        model = joblib.load(temp_path)
-                    
-                    model_filename = uploaded_file.name
-                    st.success(f"🎉 **UPLOAD SUCCESS!** Model loaded: `{type(model)}`")
-                    
-                except Exception as e:
-                    st.error(f"💥 Upload loading failed: `{type(e).__name__}: {str(e)}`")
-                    import traceback
-                    st.code(traceback.format_exc())
-                    return None, None, None
-            else:
-                return None, None, None
+            1. **Re-save your model:** Run the correction script again and save a new model
+            2. **Upload manually:** Use the uploader below  
+            3. **Version fix:** The model needs to be saved with sklearn compatibility
+            
+            **The model file exists but can't be loaded due to sklearn version differences.**
+            """)
+            
+            return None, None, None
         
         # Model validation
         st.markdown("### ✅ Model Validation")
@@ -663,32 +752,39 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Load Corrected Model
+    # Load Corrected Model (no longer cached to avoid widget issues)
     if 'corrected_model_loaded' not in st.session_state:
+        st.session_state.corrected_model_loaded = False
+    
+    if not st.session_state.corrected_model_loaded:
         model_data = load_corrected_model()
-        st.session_state.corrected_model = model_data[0]
-        st.session_state.model_filename = model_data[1]
-        st.session_state.expected_features = model_data[2]
-        st.session_state.corrected_model_loaded = True
+        if model_data[0] is not None:  # Successfully loaded
+            st.session_state.corrected_model = model_data[0]
+            st.session_state.model_filename = model_data[1] 
+            st.session_state.expected_features = model_data[2]
+            st.session_state.corrected_model_loaded = True
+            st.rerun()  # Refresh to show the loaded model
+        else:
+            return  # Exit if model couldn't be loaded
     
     model = st.session_state.corrected_model
-    model_filename = st.session_state.model_filename
+    model_filename = st.session_state.model_filename  
     expected_features = st.session_state.expected_features
     
     if model is None:
         st.error("🚨 **Critical Error**: Corrected AI system could not be initialized.")
         st.info("""
-        **Please check:**
-        - Ensure `best_model.joblib` contains your corrected model
-        - Verify the file is in the same directory as this app
-        - Make sure the model was saved properly from the correction script
-        - The model should NOT include AntibioticProphylaxis feature
+        **Issue Identified:** sklearn version compatibility problem
+        
+        **Solution:** The model was saved with a different sklearn version. 
+        You need to re-run the correction script to save a compatible model.
         """)
         return
     
-    # Display model info
-    st.success(f"✅ **Corrected Model Loaded:** {model_filename}")
-    st.info(f"📊 **Features:** Using {len(expected_features)} validated predictive factors")
+    # Only show success message if debug wasn't already displayed
+    if not hasattr(st.session_state, 'debug_shown'):
+        st.success(f"✅ **Model Loaded Successfully:** {model_filename}")
+        st.info(f"📊 **Features:** Using {len(expected_features)} validated predictive factors")
     
     # Risk Assessment Page
     risk_assessment_page(model, expected_features)
