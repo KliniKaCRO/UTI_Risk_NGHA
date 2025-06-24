@@ -160,7 +160,7 @@ class CorrectedClassifier(BaseEstimator, ClassifierMixin):
 # PAGE CONFIGURATION & STYLING
 # =============================================================================
 st.set_page_config(
-    page_title="NGHA/KAIMRC UTI Risk Calculator - AI System",
+    page_title="NGHA/KAIMRC UTI Risk Calculator - Corrected AI System",
     page_icon="⚕️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -447,51 +447,129 @@ def create_timeline_chart(risk_over_time):
 
 @st.cache_resource
 def load_corrected_model():
-    """Load the UTI prediction model with progress indication"""
+    """Load the corrected UTI prediction model with enhanced file detection"""
     progress_bar = st.progress(0)
     status_text = st.empty()
     
     try:
-        status_text.text("🔄 Initializing AI system...")
+        status_text.text("🔄 Initializing corrected AI system...")
         progress_bar.progress(25)
         time.sleep(0.5)
         
-        status_text.text("🧠 Loading machine learning model...")
-        progress_bar.progress(50)
+        status_text.text("🔍 Searching for model files...")
+        progress_bar.progress(35)
         
-        # Try multiple possible filenames and locations for the corrected model
-        model_files = [
-            'best_model.joblib',  # User's current filename
+        # Show current working directory and files for debugging
+        import os
+        current_dir = os.getcwd()
+        status_text.text(f"📁 Searching in: {current_dir}")
+        
+        # List all files in current directory
+        try:
+            all_files = os.listdir(current_dir)
+            joblib_files = [f for f in all_files if f.endswith('.joblib')]
+            pkl_files = [f for f in all_files if f.endswith('.pkl')]
+            
+            st.info(f"""
+            **🔍 Directory Scan Results:**
+            - Current directory: `{current_dir}`
+            - Total files: {len(all_files)}
+            - .joblib files found: {joblib_files if joblib_files else 'None'}
+            - .pkl files found: {pkl_files if pkl_files else 'None'}
+            """)
+            
+        except Exception as e:
+            st.warning(f"Could not list directory contents: {e}")
+        
+        progress_bar.progress(50)
+        status_text.text("🧠 Loading corrected machine learning model...")
+        
+        # Try multiple possible locations and filenames
+        model_search_paths = [
+            # Current directory variations
+            'best_model.joblib',
+            './best_model.joblib',
             'best_model (2)_FINAL_corrected.joblib',
             'new_model.joblib',
             'corrected_model.joblib',
             'best_model_corrected.joblib',
+            
+            # Subdirectory variations
             'ml_results/models/best_model.joblib',
-            'ml_results/models/best_model.pkl'
+            'models/best_model.joblib',
+            'ml_results/models/best_model.pkl',
+            'models/best_model.pkl',
+            
+            # Other possible locations
+            os.path.join(current_dir, 'best_model.joblib'),
+            os.path.join(current_dir, 'models', 'best_model.joblib'),
         ]
         
         model = None
         model_filename = None
         
-        for filename in model_files:
+        for filepath in model_search_paths:
             try:
-                if filename.endswith('.pkl'):
-                    import pickle
-                    with open(filename, 'rb') as f:
-                        model_data = pickle.load(f)
-                    model = model_data['model'] if isinstance(model_data, dict) else model_data
+                if os.path.exists(filepath):
+                    st.success(f"✅ Found model file: {filepath}")
+                    
+                    if filepath.endswith('.pkl'):
+                        import pickle
+                        with open(filepath, 'rb') as f:
+                            model_data = pickle.load(f)
+                        model = model_data['model'] if isinstance(model_data, dict) else model_data
+                    else:
+                        model = joblib.load(filepath)
+                    
+                    model_filename = filepath
+                    break
                 else:
-                    model = joblib.load(filename)
-                model_filename = filename
-                break
-            except (FileNotFoundError, KeyError, AttributeError) as e:
-                continue
+                    # File doesn't exist, continue to next
+                    continue
+                    
             except Exception as e:
-                st.error(f"Error trying to load {filename}: {str(e)}")
+                st.warning(f"⚠️ Could not load {filepath}: {str(e)}")
                 continue
         
         if model is None:
-            raise FileNotFoundError("No corrected model file found. Please ensure 'best_model.joblib' contains the corrected model.")
+            # Show file upload option
+            st.error("❌ No model file found automatically.")
+            st.markdown("### 📤 Upload Model File")
+            
+            uploaded_file = st.file_uploader(
+                "Upload your corrected model file",
+                type=['joblib', 'pkl'],
+                help="Upload the best_model.joblib file from your correction script"
+            )
+            
+            if uploaded_file is not None:
+                try:
+                    # Save uploaded file temporarily
+                    with open("uploaded_model.joblib", "wb") as f:
+                        f.write(uploaded_file.getvalue())
+                    
+                    # Load the uploaded model
+                    model = joblib.load("uploaded_model.joblib")
+                    model_filename = uploaded_file.name
+                    st.success(f"✅ Successfully loaded uploaded model: {uploaded_file.name}")
+                    
+                except Exception as e:
+                    st.error(f"❌ Error loading uploaded file: {e}")
+                    return None, None, None
+            else:
+                st.info("""
+                **📋 File Location Troubleshooting:**
+                
+                1. **Check file location**: Ensure `best_model.joblib` is in the same folder as this app
+                2. **Check file name**: Make sure it's exactly `best_model.joblib`
+                3. **Check file size**: The file should be several MB (not 0 bytes)
+                4. **Try uploading**: Use the file uploader above as an alternative
+                
+                **Expected locations searched:**
+                - Current directory: `{current_dir}`
+                - Subdirectories: `models/`, `ml_results/models/`
+                """)
+                return None, None, None
         
         progress_bar.progress(75)
         status_text.text("⚡ Validating model compatibility...")
@@ -508,26 +586,29 @@ def load_corrected_model():
         try:
             sample_data = pd.DataFrame({
                 'Gender': [0],
-                'Age': [45],
-                'BMI': [25],
+                'Age': [45.0],
+                'BMI': [25.0],
                 'TransplantType': [1],
                 'Diabetes': [0],
-                'DJ_duration': [14],
+                'DJ_duration': [14.0],
                 'Creatinine': [1.2],
-                'eGFR': [60],
-                'Hemoglobin': [12],
-                'WBC': [7],
+                'eGFR': [60.0],
+                'Hemoglobin': [12.0],
+                'WBC': [7.0],
                 'ImmunosuppressionType': [1]
             })
             
             # Test prediction
             test_pred = model.predict_proba(sample_data)
             if test_pred.shape != (1, 2):
-                raise ValueError("Model output format unexpected")
+                raise ValueError(f"Model output format unexpected: {test_pred.shape}")
+                
+            st.success(f"✅ Model validation successful!")
+            st.success(f"✅ Test prediction: {test_pred[0, 1]:.3f}")
                 
         except Exception as e:
-            st.warning(f"Model validation warning: {e}")
-            # Continue anyway, might work with actual data
+            st.warning(f"⚠️ Model validation warning: {e}")
+            st.info("Model may still work with actual input data")
         
         progress_bar.progress(100)
         status_text.text("✅ Corrected AI system ready!")
@@ -541,14 +622,17 @@ def load_corrected_model():
     except Exception as e:
         progress_bar.empty()
         status_text.empty()
-        st.error(f"❌ Error loading system: {e}")
-        st.info("""
-        **Troubleshooting:**
-        1. Ensure your corrected model is saved as `best_model.joblib`
-        2. Make sure the file contains the corrected model (without AntibioticProphylaxis)
-        3. Verify the file is in the same directory as this app
-        4. Check that the model was saved correctly from the correction script
+        st.error(f"❌ Error loading corrected AI system: {e}")
+        
+        # Enhanced debugging information
+        st.markdown("### 🔧 Debug Information")
+        st.code(f"""
+Error Type: {type(e).__name__}
+Error Message: {str(e)}
+Current Directory: {os.getcwd()}
+Python Path: {os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else 'Unknown'}
         """)
+        
         return None, None, None
 
 # =============================================================================
@@ -563,8 +647,15 @@ def main():
         <p class="premium-subtitle">Advanced AI-Powered Clinical Decision Support System</p>
     </div>
     """, unsafe_allow_html=True)
-
-    # Load Model
+    
+    # Model Update Alert
+    st.markdown("""
+    <div class="update-alert fade-in-up">
+        🔄 <strong>Model Updated:</strong> Now using scientifically corrected AI model with enhanced accuracy and reliability
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Load Corrected Model
     if 'corrected_model_loaded' not in st.session_state:
         model_data = load_corrected_model()
         st.session_state.corrected_model = model_data[0]
@@ -577,7 +668,7 @@ def main():
     expected_features = st.session_state.expected_features
     
     if model is None:
-        st.error("🚨 **Critical Error**: AI system could not be initialized.")
+        st.error("🚨 **Critical Error**: Corrected AI system could not be initialized.")
         st.info("""
         **Please check:**
         - Ensure `best_model.joblib` contains your corrected model
@@ -599,7 +690,7 @@ def risk_assessment_page(model, expected_features):
     
     # Model Performance Display
     st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 🎯 AI Model Performance")
+    st.markdown("### 🎯 Corrected AI Model Performance")
     
     col1, col2, col3, col4 = st.columns(4)
     
