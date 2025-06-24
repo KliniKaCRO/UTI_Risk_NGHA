@@ -447,179 +447,169 @@ def create_timeline_chart(risk_over_time):
 
 @st.cache_resource
 def load_corrected_model():
-    """Load the corrected UTI prediction model with enhanced file detection"""
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    """Load the corrected UTI prediction model with MAXIMUM debugging"""
+    
+    st.markdown("## 🔍 DETAILED MODEL LOADING DEBUG")
     
     try:
-        status_text.text("🔄 Initializing corrected AI system...")
-        progress_bar.progress(25)
-        time.sleep(0.5)
-        
-        status_text.text("🔍 Searching for model files...")
-        progress_bar.progress(35)
-        
-        # Show current working directory and files for debugging
         import os
         current_dir = os.getcwd()
-        status_text.text(f"📁 Searching in: {current_dir}")
+        st.success(f"📁 **Current Directory:** `{current_dir}`")
         
-        # List all files in current directory and ml_results/models
+        # Show all files in root
         try:
-            all_files = os.listdir(current_dir)
-            joblib_files = [f for f in all_files if f.endswith('.joblib')]
-            pkl_files = [f for f in all_files if f.endswith('.pkl')]
-            
-            # Check ml_results/models directory specifically
-            models_dir = os.path.join(current_dir, 'ml_results', 'models')
-            models_files = []
-            if os.path.exists(models_dir):
-                models_files = os.listdir(models_dir)
-                models_joblib = [f for f in models_files if f.endswith('.joblib')]
-                models_pkl = [f for f in models_files if f.endswith('.pkl')]
-            else:
-                models_joblib = []
-                models_pkl = []
-            
-            st.info(f"""
-            **🔍 Repository Scan Results:**
-            
-            **Root Directory:** `{current_dir}`
-            - .joblib files: {joblib_files if joblib_files else 'None'}
-            - .pkl files: {pkl_files if pkl_files else 'None'}
-            
-            **Models Directory:** `ml_results/models/`
-            - Directory exists: {'✅ Yes' if os.path.exists(models_dir) else '❌ No'}
-            - .joblib files: {models_joblib if models_joblib else 'None'}
-            - .pkl files: {models_pkl if models_pkl else 'None'}
-            - All files: {models_files if models_files else 'None'}
-            """)
-            
+            root_files = os.listdir(current_dir)
+            st.write("**📂 Root Directory Contents:**")
+            for f in sorted(root_files):
+                file_path = os.path.join(current_dir, f)
+                is_dir = os.path.isdir(file_path)
+                size = os.path.getsize(file_path) if not is_dir else "DIR"
+                st.write(f"  - `{f}` {'(DIR)' if is_dir else f'({size} bytes)'}")
         except Exception as e:
-            st.warning(f"Could not scan directories: {e}")
+            st.error(f"❌ Can't read root directory: {e}")
         
-        progress_bar.progress(50)
-        status_text.text("🧠 Loading corrected machine learning model...")
+        # Show ml_results/models contents
+        models_dir = os.path.join(current_dir, 'ml_results', 'models')
+        st.write(f"**📂 Models Directory:** `{models_dir}`")
         
-        # Try multiple possible locations based on your repository structure
-        model_search_paths = [
-            # Primary location - your ml_results/models directory
+        if os.path.exists(models_dir):
+            try:
+                model_files = os.listdir(models_dir)
+                st.success(f"✅ Models directory exists with {len(model_files)} files:")
+                for f in sorted(model_files):
+                    file_path = os.path.join(models_dir, f)
+                    size = os.path.getsize(file_path)
+                    st.write(f"  - `{f}` ({size} bytes)")
+            except Exception as e:
+                st.error(f"❌ Can't read models directory: {e}")
+        else:
+            st.error("❌ Models directory does not exist!")
+        
+        # Test specific file paths
+        st.markdown("### 🎯 Testing Specific File Paths")
+        
+        test_paths = [
             'ml_results/models/best_model.joblib',
+            'best_model.joblib',
             'ml_results/models/best_model.pkl',
+            os.path.join(current_dir, 'ml_results', 'models', 'best_model.joblib'),
+        ]
+        
+        for path in test_paths:
+            exists = os.path.exists(path)
+            if exists:
+                try:
+                    size = os.path.getsize(path)
+                    st.success(f"✅ `{path}` exists ({size} bytes)")
+                except:
+                    st.warning(f"⚠️ `{path}` exists but can't get size")
+            else:
+                st.error(f"❌ `{path}` does not exist")
+        
+        # Now try loading
+        st.markdown("### 🚀 Attempting Model Loading")
+        
+        model_search_paths = [
+            'ml_results/models/best_model.joblib',
+            'ml_results/models/best_model.pkl', 
+            'best_model.joblib',
             'ml_results/models/best_model (2)_FINAL_corrected.joblib',
             'ml_results/models/new_model.joblib',
-            'ml_results/models/corrected_model.joblib',
-            
-            # Root directory (where app.py is)
-            'best_model.joblib',
-            './best_model.joblib',
-            'new_model.joblib',
-            'corrected_model.joblib',
-            
-            # Other possible variations
-            'models/best_model.joblib',
-            'best_model_corrected.joblib',
-            
-            # Absolute paths
             os.path.join(current_dir, 'ml_results', 'models', 'best_model.joblib'),
-            os.path.join(current_dir, 'ml_results', 'models', 'best_model.pkl'),
-            os.path.join(current_dir, 'best_model.joblib'),
         ]
         
         model = None
         model_filename = None
         
-        for filepath in model_search_paths:
+        for i, filepath in enumerate(model_search_paths):
+            st.write(f"**Attempt {i+1}:** Trying `{filepath}`")
+            
             try:
                 if os.path.exists(filepath):
-                    st.success(f"✅ Found model file: {filepath}")
+                    st.info(f"  📁 File exists, attempting to load...")
                     
                     if filepath.endswith('.pkl'):
+                        st.info("  🔄 Loading as pickle file...")
                         import pickle
                         with open(filepath, 'rb') as f:
                             model_data = pickle.load(f)
                         model = model_data['model'] if isinstance(model_data, dict) else model_data
                     else:
+                        st.info("  🔄 Loading as joblib file...")
                         model = joblib.load(filepath)
                     
                     model_filename = filepath
+                    st.success(f"  ✅ SUCCESS! Loaded from `{filepath}`")
+                    st.success(f"  📊 Model type: `{type(model)}`")
                     break
+                    
                 else:
-                    # File doesn't exist, continue to next
+                    st.warning(f"  ❌ File does not exist: `{filepath}`")
                     continue
                     
             except Exception as e:
-                st.warning(f"⚠️ Could not load {filepath}: {str(e)}")
+                st.error(f"  💥 Loading failed: `{type(e).__name__}: {str(e)}`")
+                # Show full traceback for debugging
+                import traceback
+                st.code(traceback.format_exc())
                 continue
         
         if model is None:
-            # Show file upload option
-            st.error("❌ No model file found automatically.")
-            st.markdown("### 📤 Upload Model File")
+            st.error("🚨 **NO MODEL LOADED SUCCESSFULLY**")
             
+            # Show file upload as last resort
+            st.markdown("### 📤 EMERGENCY FILE UPLOAD")
             uploaded_file = st.file_uploader(
-                "Upload your corrected model file",
+                "Upload your model file directly",
                 type=['joblib', 'pkl'],
-                help="Upload the best_model.joblib file from your correction script"
+                help="This bypasses all file detection issues"
             )
             
             if uploaded_file is not None:
                 try:
-                    # Save uploaded file temporarily
-                    with open("uploaded_model.joblib", "wb") as f:
+                    st.info("🔄 Processing uploaded file...")
+                    
+                    # Save temporarily
+                    temp_path = f"temp_{uploaded_file.name}"
+                    with open(temp_path, "wb") as f:
                         f.write(uploaded_file.getvalue())
                     
-                    # Load the uploaded model
-                    model = joblib.load("uploaded_model.joblib")
+                    st.success(f"✅ Saved temporarily as `{temp_path}`")
+                    
+                    # Load uploaded model
+                    if uploaded_file.name.endswith('.pkl'):
+                        import pickle
+                        with open(temp_path, 'rb') as f:
+                            model_data = pickle.load(f)
+                        model = model_data['model'] if isinstance(model_data, dict) else model_data
+                    else:
+                        model = joblib.load(temp_path)
+                    
                     model_filename = uploaded_file.name
-                    st.success(f"✅ Successfully loaded uploaded model: {uploaded_file.name}")
+                    st.success(f"🎉 **UPLOAD SUCCESS!** Model loaded: `{type(model)}`")
                     
                 except Exception as e:
-                    st.error(f"❌ Error loading uploaded file: {e}")
+                    st.error(f"💥 Upload loading failed: `{type(e).__name__}: {str(e)}`")
+                    import traceback
+                    st.code(traceback.format_exc())
                     return None, None, None
             else:
-                st.info(f"""
-                **📋 File Location Guide for Your Repository:**
-                
-                **🎯 RECOMMENDED:** Place your corrected model here:
-                ```
-                UTI_Risk_NGHA/ml_results/models/best_model.joblib
-                ```
-                
-                **Alternative locations:**
-                ```
-                UTI_Risk_NGHA/best_model.joblib (same folder as app.py)
-                ```
-                
-                **📁 Current scan results:**
-                - Searching in: `{current_dir}`
-                - .joblib files found: {joblib_files if joblib_files else 'None'}
-                - .pkl files found: {pkl_files if pkl_files else 'None'}
-                
-                **🔧 To fix:**
-                1. Put your corrected model in `ml_results/models/best_model.joblib`
-                2. OR use the file uploader below
-                3. OR place it in the root directory as `best_model.joblib`
-                """)
                 return None, None, None
         
-        progress_bar.progress(75)
-        status_text.text("⚡ Validating model compatibility...")
-        time.sleep(0.5)
+        # Model validation
+        st.markdown("### ✅ Model Validation")
         
-        # Validate model structure
         expected_features = [
             'Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
             'DJ_duration', 'Creatinine', 'eGFR', 'Hemoglobin', 
             'WBC', 'ImmunosuppressionType'
         ]
         
-        # Test model with sample data
         try:
             sample_data = pd.DataFrame({
                 'Gender': [0],
                 'Age': [45.0],
-                'BMI': [25.0],
+                'BMI': [25.0], 
                 'TransplantType': [1],
                 'Diabetes': [0],
                 'DJ_duration': [14.0],
@@ -630,41 +620,27 @@ def load_corrected_model():
                 'ImmunosuppressionType': [1]
             })
             
-            # Test prediction
+            st.info("🧪 Testing model with sample data...")
+            st.write(f"Sample data shape: {sample_data.shape}")
+            st.write(f"Sample data columns: {list(sample_data.columns)}")
+            
             test_pred = model.predict_proba(sample_data)
-            if test_pred.shape != (1, 2):
-                raise ValueError(f"Model output format unexpected: {test_pred.shape}")
-                
-            st.success(f"✅ Model validation successful!")
-            st.success(f"✅ Test prediction: {test_pred[0, 1]:.3f}")
-                
+            st.success(f"🎉 **MODEL WORKS!** Prediction shape: {test_pred.shape}")
+            st.success(f"🎯 Sample prediction: {test_pred[0, 1]:.4f}")
+            
         except Exception as e:
-            st.warning(f"⚠️ Model validation warning: {e}")
-            st.info("Model may still work with actual input data")
+            st.error(f"💥 Model test failed: `{type(e).__name__}: {str(e)}`")
+            import traceback
+            st.code(traceback.format_exc())
+            st.warning("⚠️ Model loaded but may not work with input data")
         
-        progress_bar.progress(100)
-        status_text.text("✅ Corrected AI system ready!")
-        time.sleep(0.5)
-        
-        progress_bar.empty()
-        status_text.empty()
-        
+        st.success(f"🏆 **FINAL RESULT:** Model loaded from `{model_filename}`")
         return model, model_filename, expected_features
         
     except Exception as e:
-        progress_bar.empty()
-        status_text.empty()
-        st.error(f"❌ Error loading corrected AI system: {e}")
-        
-        # Enhanced debugging information
-        st.markdown("### 🔧 Debug Information")
-        st.code(f"""
-Error Type: {type(e).__name__}
-Error Message: {str(e)}
-Current Directory: {os.getcwd()}
-Python Path: {os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else 'Unknown'}
-        """)
-        
+        st.error(f"💥 **CRITICAL ERROR:** {type(e).__name__}: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return None, None, None
 
 # =============================================================================
