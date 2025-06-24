@@ -1,66 +1,4 @@
-def show_file_uploader():
-    """Show file uploader outside of cached function"""
-    st.markdown("### 📤 EMERGENCY FILE UPLOAD")
-    uploaded_file = st.file_uploader(
-        "Upload your model file directly",
-        type=['joblib', 'pkl'],
-        help="This bypasses all file detection issues",
-        key="model_uploader"
-    )
-    
-    if uploaded_file is not None:
-        try:
-            st.info("🔄 Processing uploaded file...")
-            
-            # Save temporarily
-            temp_path = f"temp_{uploaded_file.name}"
-            with open(temp_path, "wb") as f:
-                f.write(uploaded_file.getvalue())
-            
-            st.success(f"✅ Saved temporarily as `{temp_path}`")
-            
-            # Apply sklearn compatibility fixes
-            try:
-                import sklearn.compose._column_transformer as ct
-                if not hasattr(ct, '_RemainderColsList'):
-                    ct._RemainderColsList = list
-            except:
-                pass
-            
-            # Load uploaded model
-            if uploaded_file.name.endswith('.pkl'):
-                import pickle
-                with open(temp_path, 'rb') as f:
-                    model_data = pickle.load(f)
-                model = model_data['model'] if isinstance(model_data, dict) else model_data
-            else:
-                try:
-                    model = joblib.load(temp_path)
-                except:
-                    # Try pickle as fallback
-                    import pickle
-                    with open(temp_path, 'rb') as f:
-                        model = pickle.load(f)
-            
-            # Store in session state
-            st.session_state.corrected_model = model
-            st.session_state.model_filename = uploaded_file.name
-            st.session_state.expected_features = [
-                'Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
-                'DJ_duration', 'Creatinine', 'eGFR', 'Hemoglobin', 
-                'WBC', 'ImmunosuppressionType'
-            ]
-            st.session_state.corrected_model_loaded = True
-            
-            st.success(f"🎉 **UPLOAD SUCCESS!** Model loaded: `{type(model)}`")
-            st.rerun()  # Refresh the app
-            
-        except Exception as e:
-            st.error(f"💥 Upload loading failed: `{type(e).__name__}: {str(e)}`")
-            import traceback
-            st.code(traceback.format_exc())
-            
-    return uploaded_file is not Noneimport streamlit as st
+import streamlit as st
 import joblib
 import pandas as pd
 import numpy as np
@@ -69,32 +7,11 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 import time
+import os
 from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
 
 # =============================================================================
-# SKLEARN COMPATIBILITY FIXES
-# =============================================================================
-
-# Fix for sklearn version compatibility issues
-import sys
-from sklearn.compose import _column_transformer
-
-# Add missing sklearn classes for compatibility
-if not hasattr(_column_transformer, '_RemainderColsList'):
-    class _RemainderColsList(list):
-        """Compatibility class for sklearn version differences"""
-        pass
-    _column_transformer._RemainderColsList = _RemainderColsList
-    sys.modules['sklearn.compose._column_transformer']._RemainderColsList = _RemainderColsList
-
-# Fix for other potential sklearn compatibility issues
-try:
-    from sklearn.utils._bunch import Bunch
-except ImportError:
-    from sklearn.utils import Bunch
-
-# =============================================================================
-# CUSTOM CLASSES FOR MODEL COMPATIBILITY  
+# CUSTOM CLASSES FOR MODEL COMPATIBILITY
 # =============================================================================
 
 class FeatureRemovalPreprocessor(BaseEstimator, TransformerMixin):
@@ -106,47 +23,37 @@ class FeatureRemovalPreprocessor(BaseEstimator, TransformerMixin):
         self.original_features = None
         self.new_features = None
         self.columns_to_remove = None
-        self._is_fitted = True  # Mark as fitted since it's loaded from saved model
+        self._is_fitted = True
         self._sklearn_fitted = True
         
     def transform(self, X):
         """Transform input by removing feature, then remove corresponding output columns"""
-        # Remove the target feature from input if it exists
+        # Handle input data
         if hasattr(X, 'columns') and self.feature_to_remove in X.columns:
             X_reduced = X.drop(columns=[self.feature_to_remove], errors='ignore')
-            # Create dummy column for transformation
             X_for_transform = X_reduced.copy()
             X_for_transform[self.feature_to_remove] = 0
-            # Reorder to match original
             if hasattr(self.original_preprocessor, 'feature_names_in_'):
                 X_for_transform = X_for_transform[self.original_preprocessor.feature_names_in_]
         else:
-            # Handle case where feature is already removed
             X_for_transform = X.copy()
             if hasattr(X, 'columns') and len(X.columns) == 11:
-                # Add dummy column to match original preprocessor expectations
                 X_for_transform[self.feature_to_remove] = 0
-                # Reorder if we know the original order
                 expected_order = ['Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
                                 'DJ_duration', 'Creatinine', 'eGFR', 'Hemoglobin', 'WBC', 
                                 'ImmunosuppressionType', 'AntibioticProphylaxis']
                 X_for_transform = X_for_transform.reindex(columns=expected_order, fill_value=0)
         
-        # Transform using original preprocessor
         output = self.original_preprocessor.transform(X_for_transform)
-        
-        # Convert to array if sparse
         if hasattr(output, 'toarray'):
             output = output.toarray()
         
-        # Remove the columns corresponding to the target feature
         if self.columns_to_remove is not None and len(self.columns_to_remove) > 0:
             output = np.delete(output, self.columns_to_remove, axis=1)
         
         return output
     
     def get_feature_names_out(self, input_features=None):
-        """Get output feature names after removal"""
         try:
             original_output = self.original_preprocessor.get_feature_names_out()
             if self.columns_to_remove is not None:
@@ -156,12 +63,10 @@ class FeatureRemovalPreprocessor(BaseEstimator, TransformerMixin):
             return None
     
     def __sklearn_is_fitted__(self):
-        """Tell sklearn this estimator is fitted"""
         return self._is_fitted
     
     @property
     def feature_names_in_(self):
-        """Return new feature names"""
         if hasattr(self.original_preprocessor, 'feature_names_in_'):
             orig_features = self.original_preprocessor.feature_names_in_
             return np.array([f for f in orig_features if f != self.feature_to_remove])
@@ -169,24 +74,21 @@ class FeatureRemovalPreprocessor(BaseEstimator, TransformerMixin):
     
     @property 
     def n_features_in_(self):
-        """Return number of input features after removal"""
         if hasattr(self.original_preprocessor, 'n_features_in_'):
             return self.original_preprocessor.n_features_in_ - 1
         return None
 
 class CorrectedClassifier(BaseEstimator, ClassifierMixin):
-    """Wrapper for classifier with corrected coefficients - sklearn compliant"""
+    """Wrapper for classifier with corrected coefficients"""
     
     def __init__(self, original_classifier, columns_to_remove=None):
         self.original_classifier = original_classifier
         self.columns_to_remove = columns_to_remove or []
         self._corrected_coef = None
         self._setup_corrected_coefficients()
-        # Set sklearn fitted state attributes
         self._sklearn_fitted = True
         
     def _setup_corrected_coefficients(self):
-        """Setup corrected coefficients by removing specified columns"""
         original_coef = self.original_classifier.coef_[0]
         if self.columns_to_remove:
             self._corrected_coef = np.delete(original_coef, self.columns_to_remove)
@@ -194,34 +96,21 @@ class CorrectedClassifier(BaseEstimator, ClassifierMixin):
             self._corrected_coef = original_coef
     
     def fit(self, X, y=None):
-        """Dummy fit method for sklearn compliance"""
         return self
     
     def predict(self, X):
-        """Make predictions using corrected coefficients"""
-        # Calculate linear combination
         linear_combination = np.dot(X, self._corrected_coef) + self.original_classifier.intercept_[0]
-        
-        # Apply sigmoid for probability
         probabilities = 1 / (1 + np.exp(-linear_combination))
-        
-        # Convert to binary predictions using original classes
         predictions = np.where(probabilities > 0.5, self.classes_[1], self.classes_[0])
         return predictions
     
     def predict_proba(self, X):
-        """Predict probabilities using corrected coefficients"""
-        # Calculate linear combination
         linear_combination = np.dot(X, self._corrected_coef) + self.original_classifier.intercept_[0]
-        
-        # Apply sigmoid
         prob_positive = 1 / (1 + np.exp(-linear_combination))
         prob_negative = 1 - prob_positive
-        
         return np.column_stack([prob_negative, prob_positive])
     
     def __sklearn_is_fitted__(self):
-        """Tell sklearn this estimator is fitted"""
         return True
     
     @property
@@ -254,17 +143,14 @@ st.set_page_config(
 def load_custom_css():
     st.markdown("""
     <style>
-    /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     
-    /* Global Styling */
     .main {
         font-family: 'Inter', sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 0;
     }
     
-    /* Header Styling */
     .premium-header {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         padding: 2rem;
@@ -291,7 +177,6 @@ def load_custom_css():
         font-weight: 400;
     }
     
-    /* Card Styling */
     .premium-card {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 20px;
@@ -302,7 +187,6 @@ def load_custom_css():
         backdrop-filter: blur(10px);
     }
     
-    /* Risk Display */
     .risk-display {
         text-align: center;
         padding: 3rem;
@@ -343,44 +227,21 @@ def load_custom_css():
         margin: 0.5rem 0;
     }
     
-    /* Input Styling */
-    .stSelectbox > div > div {
-        background-color: rgba(255,255,255,0.9);
-        border-radius: 10px;
-        border: 2px solid #e0e0e0;
-        transition: all 0.3s ease;
-    }
-    
-    .stSelectbox > div > div:hover {
-        border-color: #2a5298;
-        box-shadow: 0 0 15px rgba(42, 82, 152, 0.2);
-    }
-    
-    .stSlider > div > div {
-        background-color: rgba(255,255,255,0.9);
-        border-radius: 10px;
-        padding: 1rem;
-    }
-    
-    /* Button Styling */
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .update-alert {
+        background: linear-gradient(135deg, #28a745, #20c997);
         color: white;
-        border: none;
+        padding: 1rem 2rem;
         border-radius: 15px;
-        padding: 1rem 3rem;
-        font-size: 1.2rem;
+        margin: 1rem 0;
+        text-align: center;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
     }
     
-    .stButton > button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5);
+    .fade-in-up {
+        animation: fadeInUp 0.8s ease-out;
     }
     
-    /* Animations */
     @keyframes fadeInUp {
         from {
             opacity: 0;
@@ -392,26 +253,9 @@ def load_custom_css():
         }
     }
     
-    .fade-in-up {
-        animation: fadeInUp 0.8s ease-out;
-    }
-    
-    /* Hide Streamlit Branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     .stDeployButton {display:none;}
-    
-    /* Update Alert */
-    .update-alert {
-        background: linear-gradient(135deg, #28a745, #20c997);
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 15px;
-        margin: 1rem 0;
-        text-align: center;
-        font-weight: 600;
-        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
-    }
     
     </style>
     """, unsafe_allow_html=True)
@@ -497,196 +341,144 @@ def create_risk_factor_chart(factors_data):
     
     return fig
 
-def create_timeline_chart(risk_over_time):
-    """Create risk progression timeline"""
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=risk_over_time['days'],
-        y=risk_over_time['risk'],
-        mode='lines+markers',
-        line=dict(color='#667eea', width=4),
-        marker=dict(size=10, color='#667eea', line=dict(color='white', width=2)),
-        fill='tonexty',
-        fillcolor='rgba(102, 126, 234, 0.1)',
-        name='Risk Progression'
-    ))
-    
-    fig.update_layout(
-        title="UTI Risk Timeline (Next 6 Months)",
-        title_font=dict(size=20, color='#333', family="Inter"),
-        xaxis_title="Days Post-Transplant",
-        yaxis_title="UTI Risk Probability",
-        height=300,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter", size=12, color="#333")
-    )
-    
-    return fig
-
 # =============================================================================
-# CORRECTED MODEL LOADING
+# ENHANCED MODEL LOADING WITH FILE UPLOAD
 # =============================================================================
 
+@st.cache_resource
 def load_corrected_model():
-    """Load the corrected UTI prediction model with MAXIMUM debugging"""
+    """Load the corrected UTI prediction model with comprehensive file detection"""
     
-    st.markdown("## 🔍 DETAILED MODEL LOADING DEBUG")
+    st.markdown("### 🔍 Model Loading Process")
     
+    current_dir = os.getcwd()
+    st.info(f"📁 **Current Directory:** `{current_dir}`")
+    
+    # Scan directories
     try:
-        import os
-        current_dir = os.getcwd()
-        st.success(f"📁 **Current Directory:** `{current_dir}`")
+        # Root directory
+        root_files = os.listdir(current_dir)
+        root_joblib = [f for f in root_files if f.endswith('.joblib')]
+        root_pkl = [f for f in root_files if f.endswith('.pkl')]
         
-        # Show all files in root
-        try:
-            root_files = os.listdir(current_dir)
-            st.write("**📂 Root Directory Contents:**")
-            for f in sorted(root_files):
-                file_path = os.path.join(current_dir, f)
-                is_dir = os.path.isdir(file_path)
-                size = os.path.getsize(file_path) if not is_dir else "DIR"
-                st.write(f"  - `{f}` {'(DIR)' if is_dir else f'({size} bytes)'}")
-        except Exception as e:
-            st.error(f"❌ Can't read root directory: {e}")
-        
-        # Show ml_results/models contents
+        # Models directory
         models_dir = os.path.join(current_dir, 'ml_results', 'models')
-        st.write(f"**📂 Models Directory:** `{models_dir}`")
+        models_exists = os.path.exists(models_dir)
+        models_files = os.listdir(models_dir) if models_exists else []
+        models_joblib = [f for f in models_files if f.endswith('.joblib')]
+        models_pkl = [f for f in models_files if f.endswith('.pkl')]
         
-        if os.path.exists(models_dir):
+        # Display scan results
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**📂 Root Directory:**")
+            st.write(f"- .joblib files: {root_joblib if root_joblib else 'None'}")
+            st.write(f"- .pkl files: {root_pkl if root_pkl else 'None'}")
+        
+        with col2:
+            st.markdown("**📂 ml_results/models/:**")
+            st.write(f"- Directory exists: {'✅' if models_exists else '❌'}")
+            st.write(f"- .joblib files: {models_joblib if models_joblib else 'None'}")
+            st.write(f"- .pkl files: {models_pkl if models_pkl else 'None'}")
+        
+    except Exception as e:
+        st.error(f"Error scanning directories: {e}")
+        return None, None, None
+    
+    # Try to load model from known locations
+    model_search_paths = [
+        ('ml_results/models/best_model.joblib', 'Primary location'),
+        ('best_model.joblib', 'Root directory'),
+        ('ml_results/models/new_model.joblib', 'Alternative name'),
+        ('ml_results/models/corrected_model.joblib', 'Corrected version'),
+        ('ml_results/models/best_model.pkl', 'Pickle format'),
+    ]
+    
+    # Add all found files to search paths
+    for file in models_joblib + models_pkl:
+        full_path = os.path.join('ml_results', 'models', file)
+        model_search_paths.append((full_path, f'Found in models directory'))
+    
+    for file in root_joblib + root_pkl:
+        model_search_paths.append((file, f'Found in root directory'))
+    
+    # Try loading each path
+    model = None
+    model_filename = None
+    
+    st.markdown("**🔄 Attempting to load model...**")
+    
+    for filepath, description in model_search_paths:
+        if os.path.exists(filepath):
+            st.write(f"🔍 Trying: `{filepath}` ({description})")
             try:
-                model_files = os.listdir(models_dir)
-                st.success(f"✅ Models directory exists with {len(model_files)} files:")
-                for f in sorted(model_files):
-                    file_path = os.path.join(models_dir, f)
-                    size = os.path.getsize(file_path)
-                    st.write(f"  - `{f}` ({size} bytes)")
-            except Exception as e:
-                st.error(f"❌ Can't read models directory: {e}")
-        else:
-            st.error("❌ Models directory does not exist!")
-        
-        # Test specific file paths
-        st.markdown("### 🎯 Testing Specific File Paths")
-        
-        test_paths = [
-            'ml_results/models/best_model.joblib',
-            'best_model.joblib',
-            'ml_results/models/best_model.pkl',
-            os.path.join(current_dir, 'ml_results', 'models', 'best_model.joblib'),
-        ]
-        
-        for path in test_paths:
-            exists = os.path.exists(path)
-            if exists:
-                try:
-                    size = os.path.getsize(path)
-                    st.success(f"✅ `{path}` exists ({size} bytes)")
-                except:
-                    st.warning(f"⚠️ `{path}` exists but can't get size")
-            else:
-                st.error(f"❌ `{path}` does not exist")
-        
-        # Now try loading with sklearn compatibility fixes
-        st.markdown("### 🚀 Attempting Model Loading (With Compatibility Fixes)")
-        
-        model_search_paths = [
-            'ml_results/models/best_model.joblib',
-            'ml_results/models/best_model.pkl', 
-            'best_model.joblib',
-            'ml_results/models/best_model (2)_FINAL_corrected.joblib',
-            'ml_results/models/new_model.joblib',
-            os.path.join(current_dir, 'ml_results', 'models', 'best_model.joblib'),
-        ]
-        
-        model = None
-        model_filename = None
-        
-        for i, filepath in enumerate(model_search_paths):
-            st.write(f"**Attempt {i+1}:** Trying `{filepath}`")
-            
-            try:
-                if os.path.exists(filepath):
-                    st.info(f"  📁 File exists, attempting to load with compatibility fixes...")
-                    
-                    # Apply additional sklearn compatibility fixes before loading
-                    try:
-                        # Try to fix more sklearn compatibility issues
-                        import sklearn.compose._column_transformer as ct
-                        if not hasattr(ct, '_RemainderColsList'):
-                            ct._RemainderColsList = list
-                        
-                        # Additional sklearn compatibility
-                        import sklearn.utils._testing
-                        if not hasattr(sklearn.utils._testing, 'ignore_warnings'):
-                            sklearn.utils._testing.ignore_warnings = lambda: lambda f: f
-                            
-                    except Exception as comp_e:
-                        st.warning(f"  ⚠️ Compatibility fix warning: {comp_e}")
-                    
-                    if filepath.endswith('.pkl'):
-                        st.info("  🔄 Loading as pickle file...")
-                        import pickle
-                        with open(filepath, 'rb') as f:
-                            model_data = pickle.load(f)
-                        model = model_data['model'] if isinstance(model_data, dict) else model_data
-                    else:
-                        st.info("  🔄 Loading as joblib file with compatibility...")
-                        
-                        # Try loading with different methods
-                        try:
-                            model = joblib.load(filepath)
-                        except Exception as load_e1:
-                            st.warning(f"  ⚠️ Standard joblib load failed: {load_e1}")
-                            
-                            # Try with pickle protocol fix
-                            try:
-                                import pickle
-                                with open(filepath, 'rb') as f:
-                                    model = pickle.load(f)
-                                st.info("  🔄 Loaded using pickle instead of joblib")
-                            except Exception as load_e2:
-                                raise load_e1  # Re-raise original error
-                    
-                    model_filename = filepath
-                    st.success(f"  ✅ SUCCESS! Loaded from `{filepath}`")
-                    st.success(f"  📊 Model type: `{type(model)}`")
-                    break
-                    
+                if filepath.endswith('.pkl'):
+                    import pickle
+                    with open(filepath, 'rb') as f:
+                        model_data = pickle.load(f)
+                    model = model_data['model'] if isinstance(model_data, dict) else model_data
                 else:
-                    st.warning(f"  ❌ File does not exist: `{filepath}`")
-                    continue
-                    
+                    model = joblib.load(filepath)
+                
+                model_filename = filepath
+                st.success(f"✅ **Successfully loaded:** `{filepath}`")
+                break
+                
             except Exception as e:
-                st.error(f"  💥 Loading failed: `{type(e).__name__}: {str(e)}`")
-                # Show relevant part of traceback for debugging
-                import traceback
-                tb_lines = traceback.format_exc().split('\n')
-                relevant_lines = [line for line in tb_lines if 'sklearn' in line or 'AttributeError' in line or 'joblib' in line]
-                if relevant_lines:
-                    st.code('\n'.join(relevant_lines))
+                st.warning(f"❌ Failed to load `{filepath}`: {str(e)}")
                 continue
+    
+    # If no model found, offer file upload
+    if model is None:
+        st.error("❌ **No compatible model found in expected locations**")
         
-        if model is None:
-            st.error("🚨 **NO MODEL LOADED SUCCESSFULLY**")
-            st.error("**The issue is sklearn version compatibility - the model was saved with a different sklearn version.**")
-            
-            st.info("""
-            **🔧 SOLUTIONS:**
-            
-            1. **Re-save your model:** Run the correction script again and save a new model
-            2. **Upload manually:** Use the uploader below  
-            3. **Version fix:** The model needs to be saved with sklearn compatibility
-            
-            **The model file exists but can't be loaded due to sklearn version differences.**
-            """)
-            
+        st.markdown("### 📤 Upload Your Model File")
+        st.info("""
+        **Instructions:**
+        1. Upload your corrected model file (from the surgical correction script)
+        2. Supported formats: .joblib, .pkl
+        3. File should contain the corrected model without AntibioticProphylaxis
+        """)
+        
+        uploaded_file = st.file_uploader(
+            "Choose your corrected model file",
+            type=['joblib', 'pkl'],
+            help="Upload the corrected model file from your correction script"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                # Save uploaded file temporarily
+                temp_filename = f"uploaded_{uploaded_file.name}"
+                with open(temp_filename, "wb") as f:
+                    f.write(uploaded_file.getvalue())
+                
+                # Load the uploaded model
+                if uploaded_file.name.endswith('.pkl'):
+                    import pickle
+                    with open(temp_filename, 'rb') as f:
+                        model_data = pickle.load(f)
+                    model = model_data['model'] if isinstance(model_data, dict) else model_data
+                else:
+                    model = joblib.load(temp_filename)
+                
+                model_filename = uploaded_file.name
+                st.success(f"✅ **Successfully loaded uploaded model:** `{uploaded_file.name}`")
+                
+                # Clean up temp file
+                os.remove(temp_filename)
+                
+            except Exception as e:
+                st.error(f"❌ **Error loading uploaded file:** {e}")
+                return None, None, None
+        else:
+            st.info("👆 **Please upload your corrected model file to continue**")
             return None, None, None
-        
-        # Model validation
-        st.markdown("### ✅ Model Validation")
+    
+    # Validate model
+    if model is not None:
+        st.markdown("**🧪 Validating model...**")
         
         expected_features = [
             'Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
@@ -695,10 +487,11 @@ def load_corrected_model():
         ]
         
         try:
+            # Test with sample data
             sample_data = pd.DataFrame({
                 'Gender': [0],
                 'Age': [45.0],
-                'BMI': [25.0], 
+                'BMI': [25.0],
                 'TransplantType': [1],
                 'Diabetes': [0],
                 'DJ_duration': [14.0],
@@ -709,35 +502,28 @@ def load_corrected_model():
                 'ImmunosuppressionType': [1]
             })
             
-            st.info("🧪 Testing model with sample data...")
-            st.write(f"Sample data shape: {sample_data.shape}")
-            st.write(f"Sample data columns: {list(sample_data.columns)}")
-            
             test_pred = model.predict_proba(sample_data)
-            st.success(f"🎉 **MODEL WORKS!** Prediction shape: {test_pred.shape}")
-            st.success(f"🎯 Sample prediction: {test_pred[0, 1]:.4f}")
             
+            if test_pred.shape == (1, 2):
+                st.success(f"✅ **Model validation successful!** Test prediction: {test_pred[0, 1]:.3f}")
+                return model, model_filename, expected_features
+            else:
+                st.error(f"❌ **Model output format unexpected:** {test_pred.shape}")
+                return None, None, None
+                
         except Exception as e:
-            st.error(f"💥 Model test failed: `{type(e).__name__}: {str(e)}`")
-            import traceback
-            st.code(traceback.format_exc())
-            st.warning("⚠️ Model loaded but may not work with input data")
-        
-        st.success(f"🏆 **FINAL RESULT:** Model loaded from `{model_filename}`")
-        return model, model_filename, expected_features
-        
-    except Exception as e:
-        st.error(f"💥 **CRITICAL ERROR:** {type(e).__name__}: {str(e)}")
-        import traceback
-        st.code(traceback.format_exc())
-        return None, None, None
+            st.error(f"❌ **Model validation failed:** {e}")
+            st.info("The model file may not be compatible. Please ensure you upload the corrected model.")
+            return None, None, None
+    
+    return None, None, None
 
 # =============================================================================
 # MAIN APPLICATION
 # =============================================================================
 
 def main():
-    # Premium Header with update notice
+    # Premium Header
     st.markdown("""
     <div class="premium-header fade-in-up">
         <h1 class="premium-title">⚕️ NGHA/KAIMRC UTI Risk Calculator</h1>
@@ -748,76 +534,40 @@ def main():
     # Model Update Alert
     st.markdown("""
     <div class="update-alert fade-in-up">
-        🔄 <strong>Model Updated:</strong> Now using scientifically corrected AI model with enhanced accuracy and reliability
+        🔄 <strong>Model Updated:</strong> Using scientifically corrected AI model (11 features, no AntibioticProphylaxis)
     </div>
     """, unsafe_allow_html=True)
     
-    # Load Corrected Model (no longer cached to avoid widget issues)
-    if 'corrected_model_loaded' not in st.session_state:
-        st.session_state.corrected_model_loaded = False
-    
-    if not st.session_state.corrected_model_loaded:
+    # Load Model
+    if 'model_loaded' not in st.session_state:
         model_data = load_corrected_model()
-        if model_data[0] is not None:  # Successfully loaded
-            st.session_state.corrected_model = model_data[0]
-            st.session_state.model_filename = model_data[1] 
-            st.session_state.expected_features = model_data[2]
-            st.session_state.corrected_model_loaded = True
-            st.rerun()  # Refresh to show the loaded model
-        else:
-            return  # Exit if model couldn't be loaded
+        st.session_state.model = model_data[0]
+        st.session_state.model_filename = model_data[1]
+        st.session_state.expected_features = model_data[2]
+        st.session_state.model_loaded = True
     
-    model = st.session_state.corrected_model
-    model_filename = st.session_state.model_filename  
+    model = st.session_state.model
+    model_filename = st.session_state.model_filename
     expected_features = st.session_state.expected_features
     
     if model is None:
-        st.error("🚨 **Critical Error**: Corrected AI system could not be initialized.")
-        st.info("""
-        **Issue Identified:** sklearn version compatibility problem
-        
-        **Solution:** The model was saved with a different sklearn version. 
-        You need to re-run the correction script to save a compatible model.
-        """)
-        return
+        st.error("🚨 **Please load a model to continue**")
+        st.stop()
     
-    # Only show success message if debug wasn't already displayed
-    if not hasattr(st.session_state, 'debug_shown'):
-        st.success(f"✅ **Model Loaded Successfully:** {model_filename}")
-        st.info(f"📊 **Features:** Using {len(expected_features)} validated predictive factors")
+    # Success message
+    st.success(f"✅ **Model Ready:** `{model_filename}` | **Features:** {len(expected_features)}")
     
-    # Risk Assessment Page
+    # Risk Assessment
     risk_assessment_page(model, expected_features)
 
 def risk_assessment_page(model, expected_features):
-    """Premium Risk Assessment Interface with corrected model"""
+    """Risk Assessment Interface"""
     
-    # Model Performance Display
-    st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 🎯 Corrected AI Model Performance")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    # Updated performance metrics for corrected model
-    metrics = [
-        ("Features", len(expected_features), "📊"),
-        ("Accuracy", "Validated", "✅"),
-        ("Calibration", "Excellent", "🎯"),
-        ("Status", "Production", "🚀")
-    ]
-    
-    for i, (metric, value, icon) in enumerate(metrics):
-        with [col1, col2, col3, col4][i]:
-            st.metric(f"{icon} {metric}", str(value))
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Patient Input Form - Only 11 Features
+    # Patient Input Form
     st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
     st.markdown("### 📋 Patient Assessment Form")
-    st.markdown("*Scientifically validated 11-factor risk assessment*")
+    st.markdown("*11-factor corrected risk assessment*")
     
-    # Create tabs for organized input
     tab1, tab2, tab3 = st.tabs(["👤 Demographics", "🏥 Clinical Data", "🔬 Laboratory"])
     
     with tab1:
@@ -826,64 +576,50 @@ def risk_assessment_page(model, expected_features):
         with col1:
             gender = st.selectbox("👫 Gender", ["Female", "Male"], 
                                 help="⚠️ Critical Factor: Females have significantly higher UTI risk")
-            age = st.slider("🎂 Age (years)", 18, 85, 50, 
-                          help="Patient age affects immune function and UTI susceptibility")
+            age = st.slider("🎂 Age (years)", 18, 85, 50)
             
         with col2:
-            diabetes = st.selectbox("🩺 Diabetes Mellitus", ["No", "Yes"], 
-                                  help="Diabetes increases UTI risk through multiple mechanisms")
-            transplant_type = st.selectbox("🫀 Transplant Type", ["Deceased Donor", "Living Donor"],
-                                         help="Transplant type influences overall risk profile")
+            diabetes = st.selectbox("🩺 Diabetes Mellitus", ["No", "Yes"])
+            transplant_type = st.selectbox("🫀 Transplant Type", ["Deceased Donor", "Living Donor"])
     
     with tab2:
         col1, col2 = st.columns(2)
         
         with col1:
             dj_duration = st.slider("🔧 DJ Stent Duration (days)", 5.0, 45.0, 20.0, 0.1, 
-                                  help="🚨 KEY PREDICTOR: Longer duration = Higher risk. Optimal: ≤14 days")
-            bmi = st.slider("⚖️ BMI (kg/m²)", 16.0, 45.0, 26.0, 0.1, 
-                          help="Body Mass Index affects surgical outcomes and infection risk")
+                                  help="🚨 KEY PREDICTOR: Optimal ≤14 days")
+            bmi = st.slider("⚖️ BMI (kg/m²)", 16.0, 45.0, 26.0, 0.1)
         
         with col2:
-            immunosuppression = st.selectbox("💊 Immunosuppression Type", 
-                                           ["Type 1", "Type 2", "Type 3"],
-                                           help="Different regimens have varying infection risk profiles")
+            immunosuppression = st.selectbox("💊 Immunosuppression Type", ["Type 1", "Type 2", "Type 3"])
     
     with tab3:
         col1, col2 = st.columns(2)
         
         with col1:
-            creatinine = st.slider("🧪 Creatinine (mg/dL)", 0.5, 5.0, 1.2, 0.1,
-                                 help="Kidney function marker - higher levels increase UTI risk")
-            egfr = st.slider("📊 eGFR (mL/min/1.73m²)", 15.0, 120.0, 60.0, 1.0,
-                           help="Estimated Glomerular Filtration Rate - kidney function")
+            creatinine = st.slider("🧪 Creatinine (mg/dL)", 0.5, 5.0, 1.2, 0.1)
+            egfr = st.slider("📊 eGFR (mL/min/1.73m²)", 15.0, 120.0, 60.0, 1.0)
         
         with col2:
-            hemoglobin = st.slider("🔴 Hemoglobin (g/dL)", 6.0, 18.0, 12.0, 0.1,
-                                 help="Blood oxygen-carrying capacity, affects immune function")
-            wbc = st.slider("⚪ WBC Count (K/μL)", 2.0, 20.0, 7.0, 0.1,
-                          help="White Blood Cell count - immune system status")
+            hemoglobin = st.slider("🔴 Hemoglobin (g/dL)", 6.0, 18.0, 12.0, 0.1)
+            wbc = st.slider("⚪ WBC Count (K/μL)", 2.0, 20.0, 7.0, 0.1)
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Risk Calculation
+    # Calculate Risk Button
     col1, col2, col3 = st.columns([1, 2, 1])
-    
     with col2:
         if st.button("🚀 Calculate UTI Risk", type="primary", use_container_width=True):
             calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_type,
-                                     dj_duration, creatinine, egfr, hemoglobin, wbc,
-                                     immunosuppression)
+                                     dj_duration, creatinine, egfr, hemoglobin, wbc, immunosuppression)
 
 def calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_type,
-                             dj_duration, creatinine, egfr, hemoglobin, wbc,
-                             immunosuppression):
-    """Premium risk calculation and display with corrected model"""
+                             dj_duration, creatinine, egfr, hemoglobin, wbc, immunosuppression):
+    """Calculate and display UTI risk"""
     
-    # Prepare input data - ONLY 11 features (no AntibioticProphylaxis)
-    # Ensure correct order and format for the corrected model
+    # Prepare input data
     input_data = pd.DataFrame({
-        'Gender': [1 if gender == "Male" else 0],  # Note: Model expects 0=Female, 1=Male
+        'Gender': [1 if gender == "Male" else 0],
         'Age': [float(age)],
         'BMI': [float(bmi)],
         'TransplantType': [1 if transplant_type == "Living Donor" else 0],
@@ -897,25 +633,25 @@ def calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_typ
     })
     
     try:
-        # Make prediction with corrected model
+        # Make prediction
         with st.spinner("Calculating UTI risk..."):
             risk_prob = model.predict_proba(input_data)[0, 1]
         
-        # Determine risk level based on validated thresholds
+        # Determine risk level
         if risk_prob < 0.15:
             risk_level = "Low"
             risk_class = "risk-low"
             color_scheme = "green"
         elif risk_prob < 0.35:
             risk_level = "Moderate"
-            risk_class = "risk-moderate"  
+            risk_class = "risk-moderate"
             color_scheme = "orange"
         else:
             risk_level = "High"
             risk_class = "risk-high"
             color_scheme = "red"
         
-        # Premium Risk Display
+        # Display results
         st.markdown(f"""
         <div class="risk-display {risk_class} fade-in-up">
             <h1 class="risk-percentage">{risk_prob:.1%}</h1>
@@ -930,20 +666,19 @@ def calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_typ
             gauge_fig = create_gauge_chart(risk_prob, "UTI Risk Assessment", color_scheme)
             st.plotly_chart(gauge_fig, use_container_width=True)
         
-        # Risk Factor Analysis - Based on validated clinical associations
+        # Risk Factor Analysis
         st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
         st.markdown("### 📊 Key Risk Factor Analysis")
         
-        # Calculate risk factor impacts based on clinical evidence
         factors_data = {
             'factor': ['Female Gender', 'DJ Duration', 'Diabetes', 'Age', 'Creatinine', 'eGFR'],
             'impact': [
-                0.35 if gender == "Female" else 0,  # Major risk factor
-                max(0, (dj_duration - 14) * 0.025),  # Risk increases after 14 days
-                0.28 if diabetes == "Yes" else 0,  # Significant diabetes effect
-                max(0, (age - 45) * 0.008),  # Age effect above 45
-                max(0, (creatinine - 1.2) * 0.20),  # Creatinine effect above normal
-                max(0, (60 - egfr) * 0.005) if egfr < 60 else 0  # eGFR effect below 60
+                0.35 if gender == "Female" else 0,
+                max(0, (dj_duration - 14) * 0.025),
+                0.28 if diabetes == "Yes" else 0,
+                max(0, (age - 45) * 0.008),
+                max(0, (creatinine - 1.2) * 0.20),
+                max(0, (60 - egfr) * 0.005) if egfr < 60 else 0
             ]
         }
         
@@ -954,40 +689,15 @@ def calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_typ
         # Clinical Recommendations
         display_clinical_recommendations(risk_level, risk_prob, dj_duration, gender, diabetes)
         
-        # Risk Timeline
-        st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-        st.markdown("### 📈 Risk Progression Timeline")
-        timeline_data = {
-            'days': list(range(0, 181, 30)),
-            'risk': [min(0.95, risk_prob * (1 + i*0.03)) for i in range(7)]  # Risk increases over time
-        }
-        timeline_fig = create_timeline_chart(timeline_data)
-        st.plotly_chart(timeline_fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
     except Exception as e:
-        st.error(f"❌ Error calculating risk: {e}")
-        st.error(f"Error details: {type(e).__name__}: {str(e)}")
-        
-        # Additional debugging
-        st.write("🔧 **Troubleshooting Info:**")
-        st.write(f"Model type: {type(model)}")
-        st.write(f"Input data shape: {input_data.shape}")
-        st.write(f"Input data types: {input_data.dtypes.to_dict()}")
-        
-        st.info("""
-        **Possible solutions:**
-        1. Verify the model file contains the corrected model
-        2. Check that all input values are within valid ranges
-        3. Ensure the model was saved correctly from the correction script
-        4. Try refreshing the page to reload the model
-        """)
+        st.error(f"❌ **Error calculating risk:** {e}")
+        st.info("Please check your model file and try again.")
 
 def display_clinical_recommendations(risk_level, risk_prob, dj_duration, gender, diabetes):
-    """Display premium clinical recommendations based on corrected model"""
+    """Display clinical recommendations"""
     
     st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 📋 Evidence-Based Clinical Decision Support")
+    st.markdown("### 📋 Evidence-Based Clinical Recommendations")
     
     if risk_level == "Low":
         st.success(f"""
@@ -997,13 +707,7 @@ def display_clinical_recommendations(risk_level, risk_prob, dj_duration, gender,
         - ✅ Standard monitoring protocol
         - ✅ Routine follow-up in 2-4 weeks
         - ✅ Patient education on UTI symptoms
-        - ✅ Continue current management
         - ✅ Consider stent removal if duration >14 days
-        
-        **Key Points:**
-        - Low probability of UTI development
-        - Standard care protocols are appropriate
-        - Focus on optimal stent timing
         """)
     elif risk_level == "Moderate":
         st.warning(f"""
@@ -1012,14 +716,8 @@ def display_clinical_recommendations(risk_level, risk_prob, dj_duration, gender,
         **Recommended Actions:**
         - ⚠️ Enhanced monitoring recommended
         - ⚠️ Follow-up in 1-2 weeks
-        - ⚠️ Consider early stent removal (≤14 days optimal)
+        - ⚠️ Early stent removal priority (≤14 days)
         - ⚠️ Patient education on early symptoms
-        - ⚠️ Optimize diabetes control if applicable
-        
-        **Key Points:**
-        - Moderate intervention may be beneficial
-        - Consider risk factor modification
-        - Early stent removal strongly recommended
         """)
     else:
         st.error(f"""
@@ -1031,33 +729,23 @@ def display_clinical_recommendations(risk_level, risk_prob, dj_duration, gender,
         - 🚨 **URGENT**: Plan stent removal if >14 days
         - 🚨 Consider antibiotic prophylaxis
         - 🚨 Urology consultation recommended
-        - 🚨 Enhanced patient education
-        
-        **Critical Points:**
-        - High probability of UTI development
-        - Aggressive prevention strategies essential
-        - Multidisciplinary care approach
         """)
     
-    # Specific factor-based recommendations
-    recommendations = []
-    
+    # Specific alerts
+    alerts = []
     if dj_duration > 21:
-        recommendations.append("🚨 **CRITICAL**: Stent duration >21 days significantly increases risk. Immediate removal planning required.")
+        alerts.append("🚨 **CRITICAL**: Stent duration >21 days significantly increases risk")
     elif dj_duration > 14:
-        recommendations.append("⚠️ **Important**: Stent duration >14 days increases risk. Consider early removal.")
+        alerts.append("⚠️ **Important**: Stent duration >14 days increases risk")
     
     if gender == "Female":
-        recommendations.append("🚺 **Female Patient**: Higher baseline UTI risk. Enhanced preventive measures recommended.")
+        alerts.append("🚺 **Female Patient**: Higher baseline UTI risk")
     
     if diabetes == "Yes":
-        recommendations.append("🩺 **Diabetes Alert**: Optimize glycemic control to reduce UTI risk.")
+        alerts.append("🩺 **Diabetes Alert**: Optimize glycemic control")
     
-    # Display specific recommendations
-    if recommendations:
-        st.markdown("### 🎯 Specific Risk Factor Alerts")
-        for rec in recommendations:
-            st.info(rec)
+    for alert in alerts:
+        st.info(alert)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1069,9 +757,8 @@ def display_footer():
     st.markdown("""
     <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 15px; color: white; margin-top: 2rem;">
         <h3>🏥 NGHA/KAIMRC UTI Risk Calculator</h3>
-        <p><strong>Corrected AI Model v2.0</strong> | Scientifically Validated | 11-Factor Analysis</p>
-        <p style="font-size: 0.9rem; opacity: 0.8;">This tool uses a corrected AI model and should be used in conjunction with clinical judgment.</p>
-        <p style="font-size: 0.8rem; opacity: 0.7;">Key improvement: Removed non-contributory factors for enhanced accuracy</p>
+        <p><strong>Corrected AI Model v2.0</strong> | 11-Factor Analysis | Production Ready</p>
+        <p style="font-size: 0.9rem; opacity: 0.8;">Scientifically validated model for clinical decision support</p>
     </div>
     """, unsafe_allow_html=True)
 
