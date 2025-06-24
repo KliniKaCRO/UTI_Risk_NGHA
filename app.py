@@ -160,7 +160,7 @@ class CorrectedClassifier(BaseEstimator, ClassifierMixin):
 # PAGE CONFIGURATION & STYLING
 # =============================================================================
 st.set_page_config(
-    page_title="NGHA/KAIMRC UTI Risk Calculator - Corrected AI System",
+    page_title="NGHA/KAIMRC UTI Risk Calculator - AI System",
     page_icon="⚕️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -447,16 +447,16 @@ def create_timeline_chart(risk_over_time):
 
 @st.cache_resource
 def load_corrected_model():
-    """Load the corrected UTI prediction model with progress indication"""
+    """Load the UTI prediction model with progress indication"""
     progress_bar = st.progress(0)
     status_text = st.empty()
     
     try:
-        status_text.text("🔄 Initializing corrected AI system...")
+        status_text.text("🔄 Initializing AI system...")
         progress_bar.progress(25)
         time.sleep(0.5)
         
-        status_text.text("🧠 Loading corrected machine learning model...")
+        status_text.text("🧠 Loading machine learning model...")
         progress_bar.progress(50)
         
         # Try multiple possible filenames and locations for the corrected model
@@ -541,7 +541,7 @@ def load_corrected_model():
     except Exception as e:
         progress_bar.empty()
         status_text.empty()
-        st.error(f"❌ Error loading corrected AI system: {e}")
+        st.error(f"❌ Error loading system: {e}")
         st.info("""
         **Troubleshooting:**
         1. Ensure your corrected model is saved as `best_model.joblib`
@@ -563,15 +563,8 @@ def main():
         <p class="premium-subtitle">Advanced AI-Powered Clinical Decision Support System</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Model Update Alert
-    st.markdown("""
-    <div class="update-alert fade-in-up">
-        🔄 <strong>Model Updated:</strong> Now using scientifically corrected AI model with enhanced accuracy and reliability
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Load Corrected Model
+
+    # Load Model
     if 'corrected_model_loaded' not in st.session_state:
         model_data = load_corrected_model()
         st.session_state.corrected_model = model_data[0]
@@ -584,7 +577,7 @@ def main():
     expected_features = st.session_state.expected_features
     
     if model is None:
-        st.error("🚨 **Critical Error**: Corrected AI system could not be initialized.")
+        st.error("🚨 **Critical Error**: AI system could not be initialized.")
         st.info("""
         **Please check:**
         - Ensure `best_model.joblib` contains your corrected model
@@ -606,7 +599,7 @@ def risk_assessment_page(model, expected_features):
     
     # Model Performance Display
     st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 🎯 Corrected AI Model Performance")
+    st.markdown("### 🎯 AI Model Performance")
     
     col1, col2, col3, col4 = st.columns(4)
     
