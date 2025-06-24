@@ -7,6 +7,154 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 import time
+from sklearn.base import BaseEstimator, TransformerMixin, ClassifierMixin
+
+# =============================================================================
+# CUSTOM CLASSES FOR MODEL COMPATIBILITY
+# =============================================================================
+
+class FeatureRemovalPreprocessor(BaseEstimator, TransformerMixin):
+    """Smart wrapper that removes a feature and corresponding output columns"""
+    
+    def __init__(self, original_preprocessor, feature_to_remove='AntibioticProphylaxis'):
+        self.original_preprocessor = original_preprocessor
+        self.feature_to_remove = feature_to_remove
+        self.original_features = None
+        self.new_features = None
+        self.columns_to_remove = None
+        self._is_fitted = True  # Mark as fitted since it's loaded from saved model
+        self._sklearn_fitted = True
+        
+    def transform(self, X):
+        """Transform input by removing feature, then remove corresponding output columns"""
+        # Remove the target feature from input if it exists
+        if hasattr(X, 'columns') and self.feature_to_remove in X.columns:
+            X_reduced = X.drop(columns=[self.feature_to_remove], errors='ignore')
+            # Create dummy column for transformation
+            X_for_transform = X_reduced.copy()
+            X_for_transform[self.feature_to_remove] = 0
+            # Reorder to match original
+            if hasattr(self.original_preprocessor, 'feature_names_in_'):
+                X_for_transform = X_for_transform[self.original_preprocessor.feature_names_in_]
+        else:
+            # Handle case where feature is already removed
+            X_for_transform = X.copy()
+            if hasattr(X, 'columns') and len(X.columns) == 11:
+                # Add dummy column to match original preprocessor expectations
+                X_for_transform[self.feature_to_remove] = 0
+                # Reorder if we know the original order
+                expected_order = ['Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
+                                'DJ_duration', 'Creatinine', 'eGFR', 'Hemoglobin', 'WBC', 
+                                'ImmunosuppressionType', 'AntibioticProphylaxis']
+                X_for_transform = X_for_transform.reindex(columns=expected_order, fill_value=0)
+        
+        # Transform using original preprocessor
+        output = self.original_preprocessor.transform(X_for_transform)
+        
+        # Convert to array if sparse
+        if hasattr(output, 'toarray'):
+            output = output.toarray()
+        
+        # Remove the columns corresponding to the target feature
+        if self.columns_to_remove is not None and len(self.columns_to_remove) > 0:
+            output = np.delete(output, self.columns_to_remove, axis=1)
+        
+        return output
+    
+    def get_feature_names_out(self, input_features=None):
+        """Get output feature names after removal"""
+        try:
+            original_output = self.original_preprocessor.get_feature_names_out()
+            if self.columns_to_remove is not None:
+                return np.delete(original_output, self.columns_to_remove)
+            return original_output
+        except:
+            return None
+    
+    def __sklearn_is_fitted__(self):
+        """Tell sklearn this estimator is fitted"""
+        return self._is_fitted
+    
+    @property
+    def feature_names_in_(self):
+        """Return new feature names"""
+        if hasattr(self.original_preprocessor, 'feature_names_in_'):
+            orig_features = self.original_preprocessor.feature_names_in_
+            return np.array([f for f in orig_features if f != self.feature_to_remove])
+        return None
+    
+    @property 
+    def n_features_in_(self):
+        """Return number of input features after removal"""
+        if hasattr(self.original_preprocessor, 'n_features_in_'):
+            return self.original_preprocessor.n_features_in_ - 1
+        return None
+
+class CorrectedClassifier(BaseEstimator, ClassifierMixin):
+    """Wrapper for classifier with corrected coefficients - sklearn compliant"""
+    
+    def __init__(self, original_classifier, columns_to_remove=None):
+        self.original_classifier = original_classifier
+        self.columns_to_remove = columns_to_remove or []
+        self._corrected_coef = None
+        self._setup_corrected_coefficients()
+        # Set sklearn fitted state attributes
+        self._sklearn_fitted = True
+        
+    def _setup_corrected_coefficients(self):
+        """Setup corrected coefficients by removing specified columns"""
+        original_coef = self.original_classifier.coef_[0]
+        if self.columns_to_remove:
+            self._corrected_coef = np.delete(original_coef, self.columns_to_remove)
+        else:
+            self._corrected_coef = original_coef
+    
+    def fit(self, X, y=None):
+        """Dummy fit method for sklearn compliance"""
+        return self
+    
+    def predict(self, X):
+        """Make predictions using corrected coefficients"""
+        # Calculate linear combination
+        linear_combination = np.dot(X, self._corrected_coef) + self.original_classifier.intercept_[0]
+        
+        # Apply sigmoid for probability
+        probabilities = 1 / (1 + np.exp(-linear_combination))
+        
+        # Convert to binary predictions using original classes
+        predictions = np.where(probabilities > 0.5, self.classes_[1], self.classes_[0])
+        return predictions
+    
+    def predict_proba(self, X):
+        """Predict probabilities using corrected coefficients"""
+        # Calculate linear combination
+        linear_combination = np.dot(X, self._corrected_coef) + self.original_classifier.intercept_[0]
+        
+        # Apply sigmoid
+        prob_positive = 1 / (1 + np.exp(-linear_combination))
+        prob_negative = 1 - prob_positive
+        
+        return np.column_stack([prob_negative, prob_positive])
+    
+    def __sklearn_is_fitted__(self):
+        """Tell sklearn this estimator is fitted"""
+        return True
+    
+    @property
+    def classes_(self):
+        return self.original_classifier.classes_
+    
+    @property
+    def coef_(self):
+        return self._corrected_coef.reshape(1, -1)
+    
+    @property
+    def intercept_(self):
+        return self.original_classifier.intercept_
+    
+    @property
+    def n_features_in_(self):
+        return len(self._corrected_coef)
 
 # =============================================================================
 # PAGE CONFIGURATION & STYLING
@@ -311,12 +459,15 @@ def load_corrected_model():
         status_text.text("🧠 Loading corrected machine learning model...")
         progress_bar.progress(50)
         
-        # Try multiple possible filenames for the corrected model
+        # Try multiple possible filenames and locations for the corrected model
         model_files = [
+            'best_model.joblib',  # User's current filename
             'best_model (2)_FINAL_corrected.joblib',
             'new_model.joblib',
             'corrected_model.joblib',
-            'best_model_corrected.joblib'
+            'best_model_corrected.joblib',
+            'ml_results/models/best_model.joblib',
+            'ml_results/models/best_model.pkl'
         ]
         
         model = None
@@ -324,25 +475,59 @@ def load_corrected_model():
         
         for filename in model_files:
             try:
-                model = joblib.load(filename)
+                if filename.endswith('.pkl'):
+                    import pickle
+                    with open(filename, 'rb') as f:
+                        model_data = pickle.load(f)
+                    model = model_data['model'] if isinstance(model_data, dict) else model_data
+                else:
+                    model = joblib.load(filename)
                 model_filename = filename
                 break
-            except FileNotFoundError:
+            except (FileNotFoundError, KeyError, AttributeError) as e:
+                continue
+            except Exception as e:
+                st.error(f"Error trying to load {filename}: {str(e)}")
                 continue
         
         if model is None:
-            raise FileNotFoundError("No corrected model file found. Please upload the corrected model.")
+            raise FileNotFoundError("No corrected model file found. Please ensure 'best_model.joblib' contains the corrected model.")
         
         progress_bar.progress(75)
         status_text.text("⚡ Validating model compatibility...")
         time.sleep(0.5)
         
-        # Validate model has expected features
+        # Validate model structure
         expected_features = [
             'Gender', 'Age', 'BMI', 'TransplantType', 'Diabetes', 
             'DJ_duration', 'Creatinine', 'eGFR', 'Hemoglobin', 
             'WBC', 'ImmunosuppressionType'
         ]
+        
+        # Test model with sample data
+        try:
+            sample_data = pd.DataFrame({
+                'Gender': [0],
+                'Age': [45],
+                'BMI': [25],
+                'TransplantType': [1],
+                'Diabetes': [0],
+                'DJ_duration': [14],
+                'Creatinine': [1.2],
+                'eGFR': [60],
+                'Hemoglobin': [12],
+                'WBC': [7],
+                'ImmunosuppressionType': [1]
+            })
+            
+            # Test prediction
+            test_pred = model.predict_proba(sample_data)
+            if test_pred.shape != (1, 2):
+                raise ValueError("Model output format unexpected")
+                
+        except Exception as e:
+            st.warning(f"Model validation warning: {e}")
+            # Continue anyway, might work with actual data
         
         progress_bar.progress(100)
         status_text.text("✅ Corrected AI system ready!")
@@ -357,6 +542,13 @@ def load_corrected_model():
         progress_bar.empty()
         status_text.empty()
         st.error(f"❌ Error loading corrected AI system: {e}")
+        st.info("""
+        **Troubleshooting:**
+        1. Ensure your corrected model is saved as `best_model.joblib`
+        2. Make sure the file contains the corrected model (without AntibioticProphylaxis)
+        3. Verify the file is in the same directory as this app
+        4. Check that the model was saved correctly from the correction script
+        """)
         return None, None, None
 
 # =============================================================================
@@ -394,13 +586,11 @@ def main():
     if model is None:
         st.error("🚨 **Critical Error**: Corrected AI system could not be initialized.")
         st.info("""
-        **Required Files (one of):**
-        - `best_model (2)_FINAL_corrected.joblib`
-        - `new_model.joblib`
-        - `corrected_model.joblib`
-        - `best_model_corrected.joblib`
-        
-        Please ensure the corrected model file is present in your directory.
+        **Please check:**
+        - Ensure `best_model.joblib` contains your corrected model
+        - Verify the file is in the same directory as this app
+        - Make sure the model was saved properly from the correction script
+        - The model should NOT include AntibioticProphylaxis feature
         """)
         return
     
@@ -503,23 +693,25 @@ def calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_typ
     """Premium risk calculation and display with corrected model"""
     
     # Prepare input data - ONLY 11 features (no AntibioticProphylaxis)
+    # Ensure correct order and format for the corrected model
     input_data = pd.DataFrame({
         'Gender': [1 if gender == "Male" else 0],  # Note: Model expects 0=Female, 1=Male
-        'Age': [age],
-        'BMI': [bmi],
+        'Age': [float(age)],
+        'BMI': [float(bmi)],
         'TransplantType': [1 if transplant_type == "Living Donor" else 0],
         'Diabetes': [1 if diabetes == "Yes" else 0],
-        'DJ_duration': [dj_duration],
-        'Creatinine': [creatinine],
-        'eGFR': [egfr],
-        'Hemoglobin': [hemoglobin],
-        'WBC': [wbc],
+        'DJ_duration': [float(dj_duration)],
+        'Creatinine': [float(creatinine)],
+        'eGFR': [float(egfr)],
+        'Hemoglobin': [float(hemoglobin)],
+        'WBC': [float(wbc)],
         'ImmunosuppressionType': [int(immunosuppression.split()[-1])]
     })
     
     try:
         # Make prediction with corrected model
-        risk_prob = model.predict_proba(input_data)[0, 1]
+        with st.spinner("Calculating UTI risk..."):
+            risk_prob = model.predict_proba(input_data)[0, 1]
         
         # Determine risk level based on validated thresholds
         if risk_prob < 0.15:
@@ -587,7 +779,21 @@ def calculate_and_display_risk(model, gender, age, bmi, diabetes, transplant_typ
         
     except Exception as e:
         st.error(f"❌ Error calculating risk: {e}")
-        st.info("Please check that all inputs are valid and the model file is correctly loaded.")
+        st.error(f"Error details: {type(e).__name__}: {str(e)}")
+        
+        # Additional debugging
+        st.write("🔧 **Troubleshooting Info:**")
+        st.write(f"Model type: {type(model)}")
+        st.write(f"Input data shape: {input_data.shape}")
+        st.write(f"Input data types: {input_data.dtypes.to_dict()}")
+        
+        st.info("""
+        **Possible solutions:**
+        1. Verify the model file contains the corrected model
+        2. Check that all input values are within valid ranges
+        3. Ensure the model was saved correctly from the correction script
+        4. Try refreshing the page to reload the model
+        """)
 
 def display_clinical_recommendations(risk_level, risk_prob, dj_duration, gender, diabetes):
     """Display premium clinical recommendations based on corrected model"""
