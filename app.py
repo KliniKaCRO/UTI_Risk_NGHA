@@ -464,45 +464,66 @@ def load_corrected_model():
         current_dir = os.getcwd()
         status_text.text(f"📁 Searching in: {current_dir}")
         
-        # List all files in current directory
+        # List all files in current directory and ml_results/models
         try:
             all_files = os.listdir(current_dir)
             joblib_files = [f for f in all_files if f.endswith('.joblib')]
             pkl_files = [f for f in all_files if f.endswith('.pkl')]
             
+            # Check ml_results/models directory specifically
+            models_dir = os.path.join(current_dir, 'ml_results', 'models')
+            models_files = []
+            if os.path.exists(models_dir):
+                models_files = os.listdir(models_dir)
+                models_joblib = [f for f in models_files if f.endswith('.joblib')]
+                models_pkl = [f for f in models_files if f.endswith('.pkl')]
+            else:
+                models_joblib = []
+                models_pkl = []
+            
             st.info(f"""
-            **🔍 Directory Scan Results:**
-            - Current directory: `{current_dir}`
-            - Total files: {len(all_files)}
-            - .joblib files found: {joblib_files if joblib_files else 'None'}
-            - .pkl files found: {pkl_files if pkl_files else 'None'}
+            **🔍 Repository Scan Results:**
+            
+            **Root Directory:** `{current_dir}`
+            - .joblib files: {joblib_files if joblib_files else 'None'}
+            - .pkl files: {pkl_files if pkl_files else 'None'}
+            
+            **Models Directory:** `ml_results/models/`
+            - Directory exists: {'✅ Yes' if os.path.exists(models_dir) else '❌ No'}
+            - .joblib files: {models_joblib if models_joblib else 'None'}
+            - .pkl files: {models_pkl if models_pkl else 'None'}
+            - All files: {models_files if models_files else 'None'}
             """)
             
         except Exception as e:
-            st.warning(f"Could not list directory contents: {e}")
+            st.warning(f"Could not scan directories: {e}")
         
         progress_bar.progress(50)
         status_text.text("🧠 Loading corrected machine learning model...")
         
-        # Try multiple possible locations and filenames
+        # Try multiple possible locations based on your repository structure
         model_search_paths = [
-            # Current directory variations
+            # Primary location - your ml_results/models directory
+            'ml_results/models/best_model.joblib',
+            'ml_results/models/best_model.pkl',
+            'ml_results/models/best_model (2)_FINAL_corrected.joblib',
+            'ml_results/models/new_model.joblib',
+            'ml_results/models/corrected_model.joblib',
+            
+            # Root directory (where app.py is)
             'best_model.joblib',
             './best_model.joblib',
-            'best_model (2)_FINAL_corrected.joblib',
             'new_model.joblib',
             'corrected_model.joblib',
+            
+            # Other possible variations
+            'models/best_model.joblib',
             'best_model_corrected.joblib',
             
-            # Subdirectory variations
-            'ml_results/models/best_model.joblib',
-            'models/best_model.joblib',
-            'ml_results/models/best_model.pkl',
-            'models/best_model.pkl',
-            
-            # Other possible locations
+            # Absolute paths
+            os.path.join(current_dir, 'ml_results', 'models', 'best_model.joblib'),
+            os.path.join(current_dir, 'ml_results', 'models', 'best_model.pkl'),
             os.path.join(current_dir, 'best_model.joblib'),
-            os.path.join(current_dir, 'models', 'best_model.joblib'),
         ]
         
         model = None
@@ -557,17 +578,28 @@ def load_corrected_model():
                     st.error(f"❌ Error loading uploaded file: {e}")
                     return None, None, None
             else:
-                st.info("""
-                **📋 File Location Troubleshooting:**
+                st.info(f"""
+                **📋 File Location Guide for Your Repository:**
                 
-                1. **Check file location**: Ensure `best_model.joblib` is in the same folder as this app
-                2. **Check file name**: Make sure it's exactly `best_model.joblib`
-                3. **Check file size**: The file should be several MB (not 0 bytes)
-                4. **Try uploading**: Use the file uploader above as an alternative
+                **🎯 RECOMMENDED:** Place your corrected model here:
+                ```
+                UTI_Risk_NGHA/ml_results/models/best_model.joblib
+                ```
                 
-                **Expected locations searched:**
-                - Current directory: `{current_dir}`
-                - Subdirectories: `models/`, `ml_results/models/`
+                **Alternative locations:**
+                ```
+                UTI_Risk_NGHA/best_model.joblib (same folder as app.py)
+                ```
+                
+                **📁 Current scan results:**
+                - Searching in: `{current_dir}`
+                - .joblib files found: {joblib_files if joblib_files else 'None'}
+                - .pkl files found: {pkl_files if pkl_files else 'None'}
+                
+                **🔧 To fix:**
+                1. Put your corrected model in `ml_results/models/best_model.joblib`
+                2. OR use the file uploader below
+                3. OR place it in the root directory as `best_model.joblib`
                 """)
                 return None, None, None
         
