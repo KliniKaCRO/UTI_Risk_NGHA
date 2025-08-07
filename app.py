@@ -28,144 +28,132 @@ st.set_page_config(
 def load_custom_css():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    
-    .main {
-        font-family: 'Inter', sans-serif;
+    .main-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 0;
-    }
-    
-    .premium-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
         text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     }
     
-    .premium-title {
-        color: #FFFFFF !important;
-        font-size: 3rem;
-        font-weight: 800;
-        margin: 0;
+    .main-title {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     
-    .premium-subtitle {
-        color: #B3D9FF;
-        font-size: 1.2rem;
-        margin-top: 0.5rem;
+    .main-subtitle {
+        color: rgba(255,255,255,0.9);
+        font-size: 1.1rem;
         font-weight: 400;
+        margin-bottom: 0.5rem;
     }
     
-    .standalone-badge {
-        background: linear-gradient(135deg, #28a745, #20c997);
-        color: white;
+    .disclaimer {
+        background: rgba(255,255,255,0.1);
         padding: 0.5rem 1rem;
-        border-radius: 25px;
+        border-radius: 5px;
+        border-left: 4px solid #ffd700;
         font-size: 0.9rem;
-        font-weight: 600;
-        margin-top: 1rem;
-        display: inline-block;
-    }
-    
-    .premium-card {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
-        padding: 2rem;
-        margin: 1rem 0;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
-        backdrop-filter: blur(10px);
+        color: rgba(255,255,255,0.8);
     }
     
     .risk-display {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 2rem;
+        border-radius: 15px;
         text-align: center;
-        padding: 3rem;
-        border-radius: 25px;
         margin: 2rem 0;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .risk-high {
-        background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
-        color: white;
-        box-shadow: 0 20px 40px rgba(238, 90, 111, 0.4);
-    }
-    
-    .risk-moderate {
-        background: linear-gradient(135deg, #ffa726, #ff9800);
-        color: white;
-        box-shadow: 0 20px 40px rgba(255, 167, 38, 0.4);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     }
     
     .risk-low {
-        background: linear-gradient(135deg, #66bb6a, #4caf50);
-        color: white;
-        box-shadow: 0 20px 40px rgba(102, 187, 106, 0.4);
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    }
+    
+    .risk-moderate {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+    }
+    
+    .risk-high {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%) !important;
     }
     
     .risk-percentage {
         font-size: 4rem;
         font-weight: 800;
-        margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        color: white;
+        text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        margin-bottom: 0.5rem;
     }
     
     .risk-level {
         font-size: 1.8rem;
         font-weight: 600;
-        margin: 0.5rem 0;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        margin-bottom: 0.5rem;
     }
     
-    .clinical-alert {
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-        font-weight: 500;
+    .risk-description {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.9);
+        margin-bottom: 0.3rem;
+    }
+    
+    .risk-model {
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.7);
+        font-style: italic;
     }
     
     .alert-high {
-        background: rgba(244, 67, 54, 0.1);
+        background-color: #ffebee;
         border-left: 4px solid #f44336;
-        color: #d32f2f;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 5px;
     }
     
     .alert-moderate {
-        background: rgba(255, 152, 0, 0.1);
+        background-color: #fff3e0;
         border-left: 4px solid #ff9800;
-        color: #f57c00;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 5px;
     }
     
     .alert-low {
-        background: rgba(76, 175, 80, 0.1);
+        background-color: #e8f5e8;
         border-left: 4px solid #4caf50;
-        color: #388e3c;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 5px;
     }
     
-    .fade-in-up {
-        animation: fadeInUp 0.8s ease-out;
+    .footer {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        text-align: center;
+        margin-top: 3rem;
+        color: white;
     }
     
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .footer-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
     
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stDeployButton {display:none;}
-    
+    .footer-org {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+        opacity: 0.9;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -251,8 +239,8 @@ class UTIRiskCalculatorStandalone:
         
         # Immunosuppression (dummy variables, drop first)
         immuno = patient_data.get('ImmunosuppressionType', 1)
-        processed.append(1 if immuno == 2 else 0)  # Type 2
-        processed.append(1 if immuno == 3 else 0)  # Type 3
+        processed.append(1 if immuno == 2 else 0)  # Basiliximab Induction
+        processed.append(1 if immuno == 3 else 0)  # Combination Induction
         
         return np.array(processed)
     
@@ -316,7 +304,7 @@ def create_risk_gauge(probability: float, risk_level: str) -> go.Figure:
         value=probability * 100,
         domain={'x': [0, 1], 'y': [0, 1]},
         title={
-            'text': f"UTI Risk Assessment<br><span style='font-size:0.8em;color:gray'>6-Month Probability</span>",
+            'text': f"UTI Risk Assessment<br>6-Month Probability",
             'font': {'size': 20, 'color': '#333', 'family': 'Inter'}
         },
         gauge={
@@ -489,11 +477,12 @@ def main():
     
     # Header with standalone confirmation
     st.markdown("""
-    <div class="premium-header fade-in-up">
-        <h1 class="premium-title">⚕️ NGHA/KAIMRC UTI Risk Calculator</h1>
-        <p class="premium-subtitle">Advanced AI-Powered Clinical Decision Support System</p>
-        <p class="premium-subtitle">Post-Renal Transplant UTI Risk Prediction</p>
-        <div class="standalone-badge">
+    <div class="main-header">
+        <div class="main-title">⚕️ NGHA/KAIMRC UTI Risk Calculator</div>
+        <div class="main-subtitle">Advanced AI-Powered Clinical Decision Support System</div>
+        <div class="main-subtitle">Post-Renal Transplant UTI Risk Prediction</div>
+        <br>
+        <div class="disclaimer">
             For Research and Development Purposes
         </div>
     </div>
@@ -525,7 +514,7 @@ def main():
                 help="Risk increases with age"
             )
             bmi = st.slider(
-                "BMI (kg/m²)", 
+                "BMI (kg/m2)", 
                 16.0, 45.0, 26.0, 0.1,
                 help="Body Mass Index"
             )
@@ -554,7 +543,7 @@ def main():
                 help="Kidney function indicator"
             )
             egfr = st.slider(
-                "eGFR (mL/min/1.73m²)", 
+                "eGFR (mL/min/1.73m2)", 
                 15.0, 120.0, 70.0, 1.0,
                 help="Estimated Glomerular Filtration Rate"
             )
@@ -591,12 +580,19 @@ def main():
                 help="Treatment intensity level"
             )
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<br>', unsafe_allow_html=True)
     
     # Calculate risk button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("Calculate UTI Risk", type="primary", use_container_width=True):
+            
+            # Map immunosuppression types to numerical values
+            immunosuppression_mapping = {
+                "Thymoglobulin Induction": 1,
+                "Basiliximab Induction": 2,
+                "Combination Induction": 3
+            }
             
             # Prepare patient data
             patient_data = {
@@ -610,7 +606,7 @@ def main():
                 'eGFR': float(egfr),
                 'Hemoglobin': float(hemoglobin),
                 'WBC': float(wbc),
-                'ImmunosuppressionType': int(immunosuppression.split()[1])
+                'ImmunosuppressionType': immunosuppression_mapping[immunosuppression]
             }
             
             # Calculate risk using standalone calculator
@@ -627,11 +623,11 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
     # Main risk display
     risk_class = f"risk-{risk_level.lower()}"
     st.markdown(f"""
-    <div class="risk-display {risk_class} fade-in-up">
-        <h1 class="risk-percentage">{probability:.1%}</h1>
-        <h2 class="risk-level">{risk_level} Risk</h2>
-        <p style="font-size: 1.2rem; opacity: 0.9;">6-Month UTI Probability</p>
-        <p style="font-size: 1rem; opacity: 0.8;">Standalone AI Assessment</p>
+    <div class="risk-display {risk_class}">
+        <div class="risk-percentage">{probability:.1%}</div>
+        <div class="risk-level">{risk_level} Risk</div>
+        <div class="risk-description">6-Month UTI Probability</div>
+        <div class="risk-model">Standalone AI Assessment</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -661,13 +657,13 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         
         for feature, contribution in sorted_contributions:
             impact = "Increases" if contribution > 0 else "Reduces"
-            icon = "" if contribution > 0 else ""
+            icon = "🔴" if contribution > 0 else "🟢"
             st.markdown(f"{icon} **{feature}**: {impact} risk ({contribution:+.3f})")
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<br>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown("### Recommendations")
+        st.markdown("### Clinical Recommendations")
         
         # Generate and display recommendations
         recommendations = generate_clinical_recommendations(probability, risk_level, patient_data)
@@ -682,13 +678,13 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
             st.markdown("**Clinical Alerts:**")
             for alert in recommendations['alerts']:
                 alert_type = "alert-high" if "🚨" in alert else "alert-moderate" if "⚠️" in alert else "alert-low"
-                st.markdown(f'<div class="clinical-alert {alert_type}">{alert}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="{alert_type}">{alert}</div>', unsafe_allow_html=True)
         
         # Key information
         st.markdown(f"**Follow-up:** {recommendations['follow_up']}")
         st.markdown(f"**Stent:** {recommendations['stent_management']}")
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<br>', unsafe_allow_html=True)
     
     # Monitoring protocol
     st.markdown("### Evidence-Based Monitoring Protocol")
@@ -706,7 +702,13 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         st.markdown("• **Moderate**: 15-35% probability")
         st.markdown("• **High**: >35% probability")
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown("**Immunosuppression Types:**")
+        st.markdown("• **Thymoglobulin**: High intensity")
+        st.markdown("• **Basiliximab**: Moderate intensity")
+        st.markdown("• **Combination**: Variable intensity")
+    
+    st.markdown('<br>', unsafe_allow_html=True)
 
 # =============================================================================
 # FOOTER
@@ -716,10 +718,10 @@ def display_footer():
     """Application footer with attribution"""
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 15px; color: white; margin-top: 2rem;">
-        <h3>NGHA/KAIMRC UTI Risk Calculator</h3>
-        <p><strong>Ministry of National Guard Health Affairs</strong></p>
-        <p><strong>King Abdullah International Medical Research Center</strong></p>
+    <div class="footer">
+        <div class="footer-title">NGHA/KAIMRC UTI Risk Calculator</div>
+        <div class="footer-org">Ministry of National Guard Health Affairs</div>
+        <div class="footer-org">King Abdullah International Medical Research Center</div>
     </div>
     """, unsafe_allow_html=True)
 
