@@ -193,8 +193,8 @@ class UTIRiskCalculatorStandalone:
             -2.11362815, # cat__Gender_1 (Male=1)
             0.55322582,  # cat__TransplantType_1 (Living=1)
             0.88048812,  # cat__Diabetes_1 (Yes=1)
-            -0.48987992, # cat__ImmunosuppressionType_2
-            0.13868653   # cat__ImmunosuppressionType_3
+            -0.48987992, # cat__Basiliximab_Induction
+            0.13868653   # cat__Combination_Induction
         ])
         
         self._original_intercept = -0.0725753
@@ -221,7 +221,7 @@ class UTIRiskCalculatorStandalone:
         self.feature_names = [
             'Age', 'BMI', 'DJ Duration', 'Creatinine', 'eGFR', 'Hemoglobin', 'WBC',
             'Gender (Male)', 'Transplant (Living)', 'Diabetes', 
-            'Immunosuppression Type 2', 'Immunosuppression Type 3'
+            'Basiliximab Induction', 'Combination Induction'
         ]
         
         # CLINICAL RISK THRESHOLDS
@@ -587,7 +587,7 @@ def main():
             st.markdown("#### Treatment Protocol")
             immunosuppression = st.selectbox(
                 "Immunosuppression Type", 
-                ["Type 1 (Standard)", "Type 2 (Enhanced)", "Type 3 (Intensive)"],
+                ["Thymoglobulin Induction", "Basiliximab Induction", "Combination Induction"],
                 help="Treatment intensity level"
             )
     
