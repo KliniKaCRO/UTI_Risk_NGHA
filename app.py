@@ -670,7 +670,7 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
     
     with col2:
         st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-        st.markdown("###Recommendations")
+        st.markdown("### Recommendations")
         
         # Generate and display recommendations
         recommendations = generate_clinical_recommendations(probability, risk_level, patient_data)
@@ -695,7 +695,7 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
     
     # Monitoring protocol
     st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("###Evidence-Based Monitoring Protocol")
+    st.markdown("### Evidence-Based Monitoring Protocol")
     
     col1, col2, col3 = st.columns(3)
     
