@@ -577,7 +577,7 @@ def main():
             immunosuppression = st.selectbox(
                 "Immunosuppression Type", 
                 ["Thymoglobulin Induction", "Basiliximab Induction", "Combination Induction"],
-                help="Treatment intensity level"
+                help="Immunosuppression Protocol"
             )
     
     st.markdown('<br>', unsafe_allow_html=True)
@@ -704,9 +704,9 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
     
     with col3:
         st.markdown("**Immunosuppression Types:**")
-        st.markdown("• **Thymoglobulin**: High intensity")
-        st.markdown("• **Basiliximab**: Moderate intensity")
-        st.markdown("• **Combination**: Variable intensity")
+        st.markdown("• **Thymoglobulin**")
+        st.markdown("• **Basiliximab**")
+        st.markdown("• **Combination**: Thymoglobulin + Basiliximab")
     
     st.markdown('<br>', unsafe_allow_html=True)
 
