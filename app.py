@@ -627,7 +627,6 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         <div class="risk-percentage">{probability:.1%}</div>
         <div class="risk-level">{risk_level} Risk</div>
         <div class="risk-description">6-Month UTI Probability</div>
-        <div class="risk-model">Standalone AI Assessment</div>
     </div>
     """, unsafe_allow_html=True)
     
