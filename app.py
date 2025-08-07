@@ -1,15 +1,6 @@
 #!/usr/bin/env python3
 """
-NGHA/KAIMRC UTI Risk Calculator - Pure Standalone Application
-================================================================================
-🚨 IMPORTANT: This version is COMPLETELY STANDALONE with NO external dependencies!
-- No joblib file loading
-- No model file uploads
-- All coefficients hardcoded from forensic analysis
-- Coefficient Reweighting approach (99.9% validation accuracy)
-
-Ready for immediate deployment without any model files!
-================================================================================
+NGHA/KAIMRC UTI Risk Calculator
 """
 
 import streamlit as st
@@ -27,7 +18,7 @@ warnings.filterwarnings('ignore')
 # PAGE CONFIGURATION & STYLING
 # =============================================================================
 st.set_page_config(
-    page_title="NGHA/KAIMRC UTI Risk Calculator - Standalone System",
+    page_title="NGHA/KAIMRC UTI Risk Calculator",
     page_icon="⚕️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -186,18 +177,7 @@ load_custom_css()
 
 class UTIRiskCalculatorStandalone:
     """
-    🚨 PURE STANDALONE UTI Risk Calculator
-    
-    ✅ NO external model files required
-    ✅ NO joblib dependencies  
-    ✅ All coefficients hardcoded from forensic analysis
-    ✅ Coefficient Reweighting approach (99.9% validation accuracy)
-    ✅ Universal antibiotic prophylaxis correction incorporated
-    
-    This calculator uses the winning approach from comprehensive testing:
-    - Coefficient enhancement: 1.1x (10% increase)
-    - Antibiotic incorporation: 0.7x (70% of protective effect)
-    - Perfect forensic validation: 3.6% matches exactly
+    UTI Risk Calculator
     """
     
     def __init__(self):
@@ -220,15 +200,13 @@ class UTIRiskCalculatorStandalone:
         self._original_intercept = -0.0725753
         self._antibiotic_coefficient = -1.2865763
         
-        # 🏆 COEFFICIENT REWEIGHTING PARAMETERS (Winner: 99.9% accuracy)
         self.enhancement_factor = 1.1  # 10% enhancement
         self.incorporation_factor = 0.7  # 70% antibiotic incorporation
         
-        # ⚡ FINAL MODEL PARAMETERS - READY TO USE
         self.coefficients = self._original_coefficients * self.enhancement_factor
         self.intercept = self._original_intercept + (self._antibiotic_coefficient * self.incorporation_factor)
         
-        # 📊 PREPROCESSING PARAMETERS (Clinical estimates)
+        # REPROCESSING PARAMETERS (Clinical estimates)
         self.scaling_params = {
             'Age': {'mean': 47.5, 'std': 15.0},
             'BMI': {'mean': 26.5, 'std': 4.5}, 
@@ -239,14 +217,14 @@ class UTIRiskCalculatorStandalone:
             'WBC': {'mean': 7.5, 'std': 2.5}
         }
         
-        # 📝 FEATURE NAMES FOR INTERPRETATION
+        # FEATURE NAMES FOR INTERPRETATION
         self.feature_names = [
             'Age', 'BMI', 'DJ Duration', 'Creatinine', 'eGFR', 'Hemoglobin', 'WBC',
             'Gender (Male)', 'Transplant (Living)', 'Diabetes', 
             'Immunosuppression Type 2', 'Immunosuppression Type 3'
         ]
         
-        # 🎯 CLINICAL RISK THRESHOLDS
+        # CLINICAL RISK THRESHOLDS
         self.risk_thresholds = {
             'low': 0.15,      # <15% = Low risk
             'moderate': 0.35  # 15-35% = Moderate, >35% = High
@@ -280,7 +258,7 @@ class UTIRiskCalculatorStandalone:
     
     def calculate_uti_risk(self, patient_data: Dict) -> Tuple[float, str, Dict]:
         """
-        🎯 MAIN PREDICTION FUNCTION
+        MAIN PREDICTION FUNCTION
         Calculate UTI risk probability and provide detailed analysis
         """
         # Preprocess input
@@ -430,10 +408,10 @@ def generate_clinical_recommendations(probability: float, risk_level: str, patie
     # Risk-based recommendations
     if risk_level == "Low":
         recommendations['primary_actions'] = [
-            "✅ Standard post-transplant monitoring protocol",
-            "✅ Routine clinical assessment as scheduled",
-            "✅ Patient education on UTI symptom recognition",
-            "✅ Continue current management plan"
+            "Standard post-transplant monitoring protocol",
+            "Routine clinical assessment as scheduled",
+            "Patient education on UTI symptom recognition",
+            "Continue current management plan"
         ]
         recommendations['monitoring'] = [
             "Monthly clinic visits",
@@ -444,10 +422,10 @@ def generate_clinical_recommendations(probability: float, risk_level: str, patie
         
     elif risk_level == "Moderate":
         recommendations['primary_actions'] = [
-            "⚠️ Enhanced monitoring protocol recommended",
-            "⚠️ Consider additional UTI prevention strategies",
-            "⚠️ Close monitoring of renal function",
-            "⚠️ Patient education on early symptom recognition"
+            "Enhanced monitoring protocol recommended",
+            "Consider additional UTI prevention strategies",
+            "Close monitoring of renal function",
+            "Patient education on early symptom recognition"
         ]
         recommendations['monitoring'] = [
             "Bi-weekly clinic visits for 2 months",
@@ -458,10 +436,10 @@ def generate_clinical_recommendations(probability: float, risk_level: str, patie
         
     else:  # High risk
         recommendations['primary_actions'] = [
-            "🚨 URGENT: Implement intensive monitoring protocol",
-            "🚨 Consider prophylactic antibiotic therapy",
-            "🚨 Urology consultation recommended",
-            "🚨 Optimize all modifiable risk factors"
+            "URGENT: Implement intensive monitoring protocol",
+            "Consider prophylactic antibiotic therapy",
+            "Urology consultation recommended",
+            "Optimize all modifiable risk factors"
         ]
         recommendations['monitoring'] = [
             "Weekly clinic visits for first month",
@@ -507,7 +485,7 @@ def generate_clinical_recommendations(probability: float, risk_level: str, patie
 # =============================================================================
 
 def main():
-    """🚀 Main Streamlit Application - Pure Standalone Implementation"""
+    """Main Application"""
     
     # Header with standalone confirmation
     st.markdown("""
@@ -516,7 +494,7 @@ def main():
         <p class="premium-subtitle">Advanced AI-Powered Clinical Decision Support System</p>
         <p class="premium-subtitle">Post-Renal Transplant UTI Risk Prediction</p>
         <div class="standalone-badge">
-            ⚡ Standalone System • No External Files • 99.9% Validated • Ready to Use
+            Ready to Use
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -542,7 +520,7 @@ def main():
     st.markdown("*Enter patient data for UTI risk calculation*")
     
     # Create organized input tabs
-    tab1, tab2, tab3 = st.tabs(["👤 Patient Demographics", "🔬 Laboratory Results", "🏥 Clinical Details"])
+    tab1, tab2, tab3 = st.tabs(["Patient Demographics", "Laboratory Results", "Clinical Details"])
     
     with tab1:
         col1, col2 = st.columns(2)
@@ -550,17 +528,17 @@ def main():
         with col1:
             st.markdown("#### Basic Information")
             gender = st.selectbox(
-                "👫 Gender", 
+                "Gender", 
                 ["Female", "Male"], 
                 help="⚠️ CRITICAL: Females have 3x higher UTI risk"
             )
             age = st.slider(
-                "🎂 Age (years)", 
+                "Age (years)", 
                 18, 85, 50,
                 help="Risk increases with age"
             )
             bmi = st.slider(
-                "⚖️ BMI (kg/m²)", 
+                "BMI (kg/m²)", 
                 16.0, 45.0, 26.0, 0.1,
                 help="Body Mass Index"
             )
@@ -568,12 +546,12 @@ def main():
         with col2:
             st.markdown("#### Medical History")
             diabetes = st.selectbox(
-                "🩺 Diabetes Mellitus", 
+                "Diabetes Mellitus", 
                 ["No", "Yes"],
                 help="Diabetes significantly increases UTI risk"
             )
             dj_duration = st.slider(
-                "🔧 DJ Stent Duration (days)", 
+                "DJ Stent Duration (days)", 
                 5.0, 45.0, 15.0, 0.5,
                 help="🚨 KEY FACTOR: Optimal duration ≤14 days"
             )
@@ -584,12 +562,12 @@ def main():
         with col1:
             st.markdown("#### Renal Function")
             creatinine = st.slider(
-                "🧪 Creatinine (mg/dL)", 
+                "Creatinine (mg/dL)", 
                 0.5, 5.0, 1.2, 0.1,
                 help="Kidney function indicator"
             )
             egfr = st.slider(
-                "📊 eGFR (mL/min/1.73m²)", 
+                "eGFR (mL/min/1.73m²)", 
                 15.0, 120.0, 70.0, 1.0,
                 help="Estimated Glomerular Filtration Rate"
             )
@@ -597,12 +575,12 @@ def main():
         with col2:
             st.markdown("#### Blood Parameters")
             hemoglobin = st.slider(
-                "🔴 Hemoglobin (g/dL)", 
+                "Hemoglobin (g/dL)", 
                 6.0, 18.0, 12.0, 0.1,
                 help="Oxygen-carrying capacity"
             )
             wbc = st.slider(
-                "⚪ WBC Count (K/μL)", 
+                "WBC Count (K/μL)", 
                 2.0, 20.0, 7.0, 0.1,
                 help="White Blood Cell Count"
             )
@@ -621,7 +599,7 @@ def main():
         with col2:
             st.markdown("#### Treatment Protocol")
             immunosuppression = st.selectbox(
-                "💊 Immunosuppression Type", 
+                "Immunosuppression Type", 
                 ["Type 1 (Standard)", "Type 2 (Enhanced)", "Type 3 (Intensive)"],
                 help="Treatment intensity level"
             )
@@ -631,7 +609,7 @@ def main():
     # Calculate risk button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 Calculate UTI Risk", type="primary", use_container_width=True):
+        if st.button("Calculate UTI Risk", type="primary", use_container_width=True):
             
             # Prepare patient data
             patient_data = {
@@ -649,7 +627,7 @@ def main():
             }
             
             # Calculate risk using standalone calculator
-            with st.spinner("🔄 Analyzing patient data..."):
+            with st.spinner("Analyzing patient data..."):
                 time.sleep(1)  # Brief pause for UX
                 probability, risk_level, analysis = calculator.calculate_uti_risk(patient_data)
             
@@ -681,14 +659,14 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
     
     with col1:
         st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-        st.markdown("### 📊 Feature Impact Analysis")
+        st.markdown("### Feature Impact Analysis")
         
         # Feature importance chart
         importance_fig = create_feature_importance_chart(analysis['contributions'])
         st.plotly_chart(importance_fig, use_container_width=True)
         
         # Top contributors
-        st.markdown("**🎯 Key Risk Factors:**")
+        st.markdown("**Key Risk Factors:**")
         sorted_contributions = sorted(
             analysis['contributions'].items(), 
             key=lambda x: abs(x[1]), 
@@ -697,7 +675,7 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         
         for feature, contribution in sorted_contributions:
             impact = "Increases" if contribution > 0 else "Reduces"
-            icon = "📈" if contribution > 0 else "📉"
+            icon = "" if contribution > 0 else "📉"
             st.markdown(f"{icon} **{feature}**: {impact} risk ({contribution:+.3f})")
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -710,13 +688,13 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         recommendations = generate_clinical_recommendations(probability, risk_level, patient_data)
         
         # Primary actions
-        st.markdown("**🎯 Recommended Actions:**")
+        st.markdown("**Recommended Actions:**")
         for action in recommendations['primary_actions']:
             st.markdown(f"- {action}")
         
         # Clinical alerts
         if recommendations['alerts']:
-            st.markdown("**⚠️ Clinical Alerts:**")
+            st.markdown("**Clinical Alerts:**")
             for alert in recommendations['alerts']:
                 alert_type = "alert-high" if "🚨" in alert else "alert-moderate" if "⚠️" in alert else "alert-low"
                 st.markdown(f'<div class="clinical-alert {alert_type}">{alert}</div>', unsafe_allow_html=True)
@@ -729,27 +707,20 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
     
     # Monitoring protocol
     st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 📋 Evidence-Based Monitoring Protocol")
+    st.markdown("###Evidence-Based Monitoring Protocol")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("**🔍 Clinical Monitoring:**")
+        st.markdown("**Clinical Monitoring:**")
         for item in recommendations['monitoring']:
             st.markdown(f"• {item}")
     
     with col2:
-        st.markdown("**🎯 Risk Categories:**")
+        st.markdown("**Risk Categories:**")
         st.markdown("• **Low**: <15% probability")
         st.markdown("• **Moderate**: 15-35% probability")
         st.markdown("• **High**: >35% probability")
-    
-    with col3:
-        st.markdown("**⚡ Model Details:**")
-        st.markdown(f"• Approach: {analysis['model_info']['approach']}")
-        st.markdown(f"• Enhancement: {analysis['model_info']['enhancement']}x")
-        st.markdown(f"• Validation: {analysis['model_info']['validation_accuracy']}")
-        st.markdown("• Status: Production Ready")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -762,12 +733,9 @@ def display_footer():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 15px; color: white; margin-top: 2rem;">
-        <h3>🏥 NGHA/KAIMRC UTI Risk Calculator</h3>
+        <h3>NGHA/KAIMRC UTI Risk Calculator</h3>
         <p><strong>Ministry of National Guard Health Affairs</strong></p>
         <p><strong>King Abdullah International Medical Research Center</strong></p>
-        <p style="font-size: 0.9rem; opacity: 0.8;">⚡ Standalone Implementation • Coefficient Reweighting Model</p>
-        <p style="font-size: 0.8rem; opacity: 0.7;">99.9% Forensic Accuracy • 11-Feature Clinical Decision Support</p>
-        <p style="font-size: 0.7rem; opacity: 0.6;">Production-ready system with no external dependencies</p>
     </div>
     """, unsafe_allow_html=True)
 
