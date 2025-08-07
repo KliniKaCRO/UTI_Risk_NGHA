@@ -494,20 +494,8 @@ def main():
         <p class="premium-subtitle">Advanced AI-Powered Clinical Decision Support System</p>
         <p class="premium-subtitle">Post-Renal Transplant UTI Risk Prediction</p>
         <div class="standalone-badge">
-            Ready to Use
+            For Research and Development Purposes
         </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Model information card
-    st.markdown("""
-    <div class="premium-card fade-in-up">
-        <h3>🔬 Standalone Model Information</h3>
-        <p><strong>Implementation:</strong> Pure Python - No External Dependencies</p>
-        <p><strong>Approach:</strong> Coefficient Reweighting (Winner from 8-model testing)</p>
-        <p><strong>Validation:</strong> 99.9% Forensic Accuracy • ROC-AUC 0.700</p>
-        <p><strong>Features:</strong> 11 Clinical Predictors • Universal Antibiotic Effect Incorporated</p>
-        <p><strong>Ready:</strong> Immediate deployment without any external model files</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -591,7 +579,7 @@ def main():
         with col1:
             st.markdown("#### Transplant Information")
             transplant_type = st.selectbox(
-                "🫀 Transplant Type", 
+                "Transplant Type", 
                 ["Deceased Donor", "Living Donor"],
                 help="Living donor generally better outcomes"
             )
@@ -675,14 +663,14 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         
         for feature, contribution in sorted_contributions:
             impact = "Increases" if contribution > 0 else "Reduces"
-            icon = "" if contribution > 0 else "📉"
+            icon = "" if contribution > 0 else ""
             st.markdown(f"{icon} **{feature}**: {impact} risk ({contribution:+.3f})")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
-        st.markdown("### 🏥 Clinical Recommendations")
+        st.markdown("###Recommendations")
         
         # Generate and display recommendations
         recommendations = generate_clinical_recommendations(probability, risk_level, patient_data)
@@ -700,8 +688,8 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
                 st.markdown(f'<div class="clinical-alert {alert_type}">{alert}</div>', unsafe_allow_html=True)
         
         # Key information
-        st.markdown(f"**📅 Follow-up:** {recommendations['follow_up']}")
-        st.markdown(f"**🔧 Stent:** {recommendations['stent_management']}")
+        st.markdown(f"**Follow-up:** {recommendations['follow_up']}")
+        st.markdown(f"**Stent:** {recommendations['stent_management']}")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
