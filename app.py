@@ -503,7 +503,6 @@ def main():
     calculator = UTIRiskCalculatorStandalone()
     
     # Patient assessment form
-    st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
     st.markdown("### 📋 Patient Assessment Form")
     st.markdown("*Enter patient data for UTI risk calculation*")
     
