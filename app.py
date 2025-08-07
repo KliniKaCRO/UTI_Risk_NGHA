@@ -691,7 +691,6 @@ def display_results(probability: float, risk_level: str, analysis: Dict, patient
         st.markdown('</div>', unsafe_allow_html=True)
     
     # Monitoring protocol
-    st.markdown('<div class="premium-card fade-in-up">', unsafe_allow_html=True)
     st.markdown("### Evidence-Based Monitoring Protocol")
     
     col1, col2, col3 = st.columns(3)
